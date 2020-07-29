@@ -10,16 +10,13 @@ class Base(nn.Module):
                  non_linearity: nn.Module = nn.ReLU):
         super(Base, self).__init__()
 
-        actor_base_modules = []
+        base_modules = []
         for i in range(len(base_layer_dims) - 1):
-            actor_base_modules.append(torch.nn.Linear(base_layer_dims[i], base_layer_dims[i + 1]))
-            actor_base_modules.append(non_linearity)
+            base_modules.append(torch.nn.Linear(base_layer_dims[i], base_layer_dims[i + 1]))
+            base_modules.append(non_linearity)
 
-        self.actor_base_model = nn.Sequential(*actor_base_modules)
-        self.init_weights(self.actor_base_model)
-
-    def forward(self, x):
-        return self.actor_base_model(x)
+        self.base_model = nn.Sequential(*base_modules)
+        self.init_weights(self.base_model)
 
     def copy_params(self, source_network: nn.Module) -> None:
         """
@@ -122,7 +119,7 @@ class Actor(Base):
         assert 0 <= intention_idx < self.num_intentions
         assert self.log_std[intention_idx].shape == [self.num_actions]
 
-        x = self.actor_base_model(x)
+        x = self.base_model(x)
 
         if intention_idx is None:
             means = torch.FloatTensor([self.num_intentions, self.num_actions])
@@ -141,5 +138,53 @@ class Actor(Base):
         # return action, log_prob
 
 
+class Critic(Base):
+    def __init__(self,
+                 num_intentions: int,
+                 num_actions: int,
+                 num_obs: int,
+                 base_layer_dims: List = None,
+                 intention_layer_dims: List = None,
+                 non_linearity: nn.Module = nn.ReLU,
+                 logger=None):
+
+        if base_layer_dims is None:
+            base_layer_dims = [128, 128]
+        if intention_layer_dims is None:
+            intention_layer_dims = [64]
+
+        super(Critic, self).__init__(base_layer_dims=[num_actions + num_obs] + base_layer_dims,
+                                     non_linearity=non_linearity)
+
+        self.num_intentions = num_intentions
+        self.num_actions = num_actions
+        self.num_obs = num_obs
+        self.logger = logger
+
+        # Create a model for a intention net
+        intention_modules = []
+        for i in range(len(intention_layer_dims) - 1):
+            intention_modules.append(nn.Linear(intention_layer_dims[i], intention_layer_dims[i + 1]))
+            intention_modules.append(non_linearity)
+        intention_modules.append(nn.Linear(intention_layer_dims[-1], 1))
+
+        # Create all intention nets
+        self.intention_nets = []
+        for i in range(num_intentions):
+            intention_net = nn.Sequential(*intention_modules[:-1])  # Remove last non-linearity
+            self.init_weights(intention_net)
+            self.intention_nets.append(intention_net)
+
+    def forward(self, actions, observations):
+        assert actions.shape == (self.num_intentions, self.num_actions)
+        assert observations.shape == self.num_obs
+        x = torch.cat([actions, observations.expand(self.num_intentions, observations.shape[0])], dim=-1)
+        x = self.base_model(x)
+
+        Q_values = torch.FloatTensor([self.num_intentions, 1])
+        for i in range(self.num_intentions):
+            Q_values[i, :] = self.intention_nets[i](x[i])
+
+        return Q_values
 
 
