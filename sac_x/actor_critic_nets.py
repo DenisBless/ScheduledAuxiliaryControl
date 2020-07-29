@@ -96,6 +96,7 @@ class Actor(Base):
                                     non_linearity=non_linearity)
 
         self.num_intentions = num_intentions
+        self.num_actions = num_actions
         self.log_std_init = np.log(std_init)
         self.eps = eps
         self.logger = logger
@@ -114,12 +115,31 @@ class Actor(Base):
             self.init_weights(intention_net)
             self.intention_nets.append(intention_net)
 
+        # state independent action noise
+        self.log_std = torch.nn.Parameter(torch.ones(num_intentions, num_actions) * self.log_std_init)
+
     def forward(self, x, intention_idx=None):
         assert 0 <= intention_idx < self.num_intentions
+        assert self.log_std[intention_idx].shape == [self.num_actions]
+
         x = self.actor_base_model(x)
+
         if intention_idx is None:
-            ...
+            means = torch.FloatTensor([self.num_intentions, self.num_actions])
+            for i in range(self.num_intentions):
+                means[i, :] = self.intention_nets[i](x)
+            return means, self.log_std
+
         else:
-            x = self.intention_nets[intention_idx](x)
+            mean = self.intention_nets[intention_idx](x)
+            return mean, self.log_std[intention_idx]
+        #
+        # dist = torch.distributions.Normal(loc=mean, scale=self.log_std[intention_idx])
+        # raw_action = dist.rsample()  # rsample() enables reparameterization trick
+        # action = torch.tanh(raw_action)
+        # log_prob = dist.log_prob(raw_action).sum(dim=-1) - torch.sum(torch.log((1 - action.pow(2) + self.eps)), dim=-1)
+        # return action, log_prob
+
+
 
 
