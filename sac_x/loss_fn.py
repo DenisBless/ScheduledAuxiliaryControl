@@ -105,7 +105,6 @@ class Retrace:
         log_retrace_weights = (target_policy_logprob - behaviour_policy_logprob).clamp(max=0)
         retrace_weights = log_retrace_weights.exp()
         assert not torch.isnan(log_retrace_weights).any(), "Error, a least one NaN value found in retrace weights."
-        # return log_retrace_weights.exp()
         return retrace_weights
 
 
