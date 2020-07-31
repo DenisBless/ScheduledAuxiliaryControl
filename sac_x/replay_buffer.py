@@ -1,5 +1,5 @@
 import torch
-from typing import Union, List
+from typing import List
 from torch.multiprocessing import Condition
 import random
 

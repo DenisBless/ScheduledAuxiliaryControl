@@ -82,7 +82,7 @@ class Retrace:
                 logger.add_scalar(tag="retrace/E[targetQ] mean", scalar_value=expected_target_Q.mean())
                 logger.add_scalar(tag="retrace/E[targetQ] std", scalar_value=expected_target_Q.std())
 
-        return F.mse_loss(Q, Q_ret)
+        return ((Q - Q_ret) ** 2).mean(dim=-1).sum(dim=0)
 
     def calc_retrace_weights(self, target_policy_logprob, behaviour_policy_logprob):
         """

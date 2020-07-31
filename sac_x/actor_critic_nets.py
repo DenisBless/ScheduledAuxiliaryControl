@@ -142,6 +142,7 @@ class Actor(Base):
 
 
 class Critic(Base):
+
     def __init__(self,
                  num_intentions: int,
                  num_actions: int,
