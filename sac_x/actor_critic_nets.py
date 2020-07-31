@@ -115,7 +115,10 @@ class Actor(Base):
         # state independent action noise
         self.log_std = torch.nn.Parameter(torch.ones(num_intentions, num_actions) * self.log_std_init)
 
-    def forward(self, x, intention_idx=None):
+    def __call__(self, x, intention_idx):
+        return self.predict(x, intention_idx)
+
+    def predict(self, x, intention_idx=None):
         assert 0 <= intention_idx < self.num_intentions
         assert self.log_std[intention_idx].shape == [self.num_actions]
 
@@ -186,5 +189,3 @@ class Critic(Base):
             Q_values[i, :] = self.intention_nets[i](x[i])
 
         return Q_values
-
-
