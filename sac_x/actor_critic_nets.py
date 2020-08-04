@@ -78,6 +78,7 @@ class Actor(Base):
                  num_intentions: int,
                  num_actions: int,
                  num_obs: int,
+                 parser_args,
                  base_layer_dims: List = None,
                  intention_layer_dims: List = None,
                  std_init: float = -2.,
@@ -100,35 +101,34 @@ class Actor(Base):
         self.eps = eps
         self.logger = logger
 
-        # Create a model for a intention net
-        intention_modules = []
-        intention_modules.append(nn.Linear(base_layer_dims[-1], intention_layer_dims[0]))
-        for i in range(len(intention_layer_dims) - 1):
-            intention_modules.append(nn.Linear(intention_layer_dims[i], intention_layer_dims[i + 1]))
-            intention_modules.append(non_linearity)
-        intention_modules.append(nn.Linear(intention_layer_dims[-1], 2 * num_actions))
+        self.episode_length = parser_args.episode_length
 
         # Create all intention nets
-        self.intention_nets = []
-        for i in range(num_intentions):
-            intention_net = nn.Sequential(*intention_modules)  # Remove last non-linearity
-            self.init_weights(intention_net)
-            self.intention_nets.append(intention_net)
+        self.intention_nets = nn.ModuleList()
+        for _ in range(num_intentions):
+            # Create a model for a intention net
+            intention_modules = [nn.Linear(base_layer_dims[-1], intention_layer_dims[0])]
+            for i in range(len(intention_layer_dims) - 1):
+                intention_modules.append(nn.Linear(intention_layer_dims[i], intention_layer_dims[i + 1]))
+                intention_modules.append(non_linearity)
+            intention_modules.append(nn.Linear(intention_layer_dims[-1], 2 * num_actions))
 
-    def __call__(self, x, intention_idx):
+            self.intention_nets.append(nn.Sequential(*intention_modules))
+
+    def __call__(self, x, intention_idx=None):
         return self.predict(x, intention_idx)
 
     def predict(self, x, intention_idx=None):
-        assert 0 <= intention_idx < self.num_intentions
+        # assert (0 <= intention_idx < self.num_intentions) or (intention_idx is None)
 
         x = self.base_model(x)
 
         if intention_idx is None:
-            mean = torch.tensor([self.num_intentions, self.num_actions], dtype=torch.float32)
-            log_std = torch.tensor([self.num_intentions, self.num_actions], dtype=torch.float32)
+            mean = torch.zeros([self.num_intentions, self.episode_length, self.num_actions])
+            log_std = torch.zeros([self.num_intentions, self.episode_length, self.num_actions])
             for i in range(self.num_intentions):
-                mean[i, :] = self.intention_nets[i](x)[:, :self.num_actions]
-                log_std[i, :] = self.intention_nets[i](x)[:, self.num_actions:]
+                mean[i, :, :] = self.intention_nets[i](x)[:, :self.num_actions]
+                log_std[i, :, :] = self.intention_nets[i](x)[:, self.num_actions:]
         else:
             mean = self.intention_nets[intention_idx](x)[:self.num_actions]
             log_std = self.intention_nets[intention_idx](x)[self.num_actions:]
@@ -222,6 +222,7 @@ class Critic(Base):
                  num_intentions: int,
                  num_actions: int,
                  num_obs: int,
+                 parser_args,
                  base_layer_dims: List = None,
                  intention_layer_dims: List = None,
                  non_linearity: nn.Module = nn.ReLU(),
@@ -240,32 +241,34 @@ class Critic(Base):
         self.num_obs = num_obs
         self.logger = logger
 
-        # Create a model for a intention net
-        intention_modules = []
-        intention_modules.append(nn.Linear(base_layer_dims[-1], intention_layer_dims[0]))
-        for i in range(len(intention_layer_dims) - 1):
-            intention_modules.append(nn.Linear(intention_layer_dims[i], intention_layer_dims[i + 1]))
-            intention_modules.append(non_linearity)
-        intention_modules.append(nn.Linear(intention_layer_dims[-1], 1))
+        self.episode_length = parser_args.episode_length
 
         # Create all intention nets
-        self.intention_nets = []
-        for i in range(num_intentions):
-            intention_net = nn.Sequential(*intention_modules)  # Remove last non-linearity
-            self.init_weights(intention_net)
-            self.intention_nets.append(intention_net)
+        self.intention_nets = nn.ModuleList()
+        for _ in range(num_intentions):
+            # Create a model for a intention net
+            intention_modules = [nn.Linear(base_layer_dims[-1], intention_layer_dims[0])]
+            for i in range(len(intention_layer_dims) - 1):
+                intention_modules.append(nn.Linear(intention_layer_dims[i], intention_layer_dims[i + 1]))
+                intention_modules.append(non_linearity)
+            intention_modules.append(nn.Linear(intention_layer_dims[-1], 1))
+
+            self.intention_nets.append(nn.Sequential(*intention_modules))
 
     def __call__(self, actions, observations):
-        assert actions.shape == (self.num_intentions, self.num_actions)
-        assert observations.shape == self.num_obs
-        x = torch.cat([actions, observations.expand(self.num_intentions, observations.shape[0])], dim=-1)
+        if observations.dim() < actions.dim():
+            observations = observations.unsqueeze(dim=0).expand(([self.num_intentions] + list(observations.shape)))
+        x = torch.cat([actions, observations], dim=-1)
         return self.forward(x)
 
     def forward(self, x):
         x = self.base_model(x)
 
-        Q_values = torch.tensor([self.num_intentions, 1], dtype=torch.float32)
+        Q_values = torch.zeros([self.num_intentions, self.episode_length, 1])
         for i in range(self.num_intentions):
-            Q_values[i, :] = self.intention_nets[i](x[i])
+            if x.dim() == 3:
+                Q_values[i, :, :] = self.intention_nets[i](x[i, :, :])
+            else:
+                Q_values[i, :, :] = self.intention_nets[i](x)
 
         return Q_values

@@ -75,19 +75,19 @@ class Learner:
             if i % self.update_targnets_every == 0:
                 self.update_targnets()
 
-            states, actions, rewards, behaviour_log_pr = self.replay_buffer.sample()
+            states, actions, rewards, behaviour_log_pr, schedule_decisions = self.replay_buffer.sample()
 
             # Q(a_t, s_t)
-            batch_Q = self.critic(torch.cat([actions, states], dim=-1))
+            batch_Q = self.critic(actions, states)
 
             # Q_target(a_t, s_t)
-            target_Q = self.target_critic(torch.cat([actions, states], dim=-1))
+            target_Q = self.target_critic(actions, states)
 
             # Compute 𝔼_π_target [Q(s_t,•)] with a ~ π_target(•|s_t), log(π_target(a|s)) with 1 sample
             mean, log_std = self.target_actor(states)
 
             action_sample, _ = self.target_actor.action_sample(mean, log_std)
-            expected_target_Q = self.target_critic(torch.cat([action_sample, states], dim=-1))
+            expected_target_Q = self.target_critic(action_sample, states)
 
             # log(π_target(a_t | s_t))
             target_action_log_prob = self.target_actor.get_log_prob(actions=actions, mean=mean, log_std=log_std)
@@ -97,7 +97,7 @@ class Learner:
             current_actions, current_action_log_prob = self.actor.action_sample(current_mean, current_log_std)
 
             # Q(a, s_t)
-            current_Q = self.critic(torch.cat([current_actions, states], dim=-1))
+            current_Q = self.critic(current_actions, states)
 
             critic_loss = self.critic_loss(Q=batch_Q,
                                            expected_target_Q=expected_target_Q,

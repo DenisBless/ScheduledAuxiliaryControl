@@ -28,7 +28,7 @@ class ArgParser(ArgumentParser):
                           help='Scaling of entropy term in the actor loss function')
         self.add_argument('--replay_buffer_size', type=int, default=300,
                           help='Size of the replay buffer.')
-        self.add_argument('--num_trajectories', type=int, default=20,
+        self.add_argument('--num_trajectories', type=int, default=2,
                           help='Number of trajectories sampled before entering the learning phase.')
         self.add_argument('--schedule_switch', type=int, default=180,
                           help='Number of time steps after the scheduler samples a new intention.')
