@@ -60,7 +60,7 @@ class Learner:
 
             # Update the target networks
             if i % self.update_targnets_every == 0:
-                self.update_targnets(smoothing_coefficient=self.smoothing_coefficient)
+                self.update_targnets()
 
             states, actions, rewards, behaviour_log_pr, intentions = self.replay_buffer.sample()
 

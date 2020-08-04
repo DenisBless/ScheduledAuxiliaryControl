@@ -5,7 +5,7 @@ class ArgParser(ArgumentParser):
     def __init__(self):
         super(ArgParser, self).__init__(description='arg_parser')
 
-        # Algorithm parameter
+        # Algorithm arguments
         self.add_argument('--num_worker', type=int, default=1,
                           help='Number of workers training the agent in parallel.')
         self.add_argument('--num_grads', type=int, default=1,
@@ -22,9 +22,6 @@ class ArgParser(ArgumentParser):
                           help='Learning rate for the critic network.')
         self.add_argument('--init_std', type=float, default=0.2,
                           help='Initial standard deviation of the actor.')
-        self.add_argument('--smoothing_coefficient', type=float, default=1,
-                          help='Decides how the target networks are updated. One corresponds to a hard updates, whereas'
-                               ' values between zero and one result in exponential moving average updates.')
         self.add_argument('--global_gradient_norm', type=float, default=0.5,
                           help='Enables gradient clipping with a specified global parameter L2 norm')
         self.add_argument('--entropy_reg', type=float, default=0,
@@ -33,6 +30,16 @@ class ArgParser(ArgumentParser):
                           help='Size of the replay buffer.')
         self.add_argument('--num_trajectories', type=int, default=20,
                           help='Number of trajectories sampled before entering the learning phase.')
+
+        # Environment arguments
+        self.add_argument('--num_actions', type=int, default=4,
+                          help='Dimension of the action space.')
+        self.add_argument('--num_observations', type=int, default=...,
+                          help='Dimension of the observation space.')
+        self.add_argument('--num_intentions', type=int, default=13,
+                          help='Number of intentions (auxiliary tasks + external tasks).')
+        self.add_argument('--episode_length', type=int, default=360,
+                          help='Number of steps the agent interacts with the environment.')
 
     def hparam_dict(self):
         return {'update_targets': ...,
