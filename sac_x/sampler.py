@@ -1,6 +1,7 @@
 import torch
 import gym
 from sac_x.replay_buffer import SharedReplayBuffer
+from sac_x.scheduler import Scheduler
 from torch.multiprocessing import current_process
 
 
@@ -8,7 +9,7 @@ class Sampler:
     def __init__(self,
                  actor: torch.nn.Module,
                  replay_buffer: SharedReplayBuffer,
-                 scheduler,
+                 scheduler: Scheduler,
                  argp,
                  logger=None):
 
@@ -22,11 +23,11 @@ class Sampler:
 
         self.logger = logger
         if argp.num_worker > 1:
-            self.pid = current_process()._identity[0]  # process ID
+            self.process_id = current_process()._identity[0]  # process ID
         else:
-            self.pid = 1
+            self.process_id = 1
 
-    def run(self):
+    def run(self) -> None:
         for i in range(self.num_trajectories):
             states, actions, rewards, action_log_prs, schedule_decisions = [], [], [], [], []
             h = 0
@@ -60,7 +61,7 @@ class Sampler:
             action_log_prs = torch.stack(action_log_prs)
             schedule_decisions = torch.stack(schedule_decisions)
 
-            if self.pid == 1 and self.logger is not None and i % self.log_every == 0:
+            if self.process_id == 1 and self.logger is not None and i % self.log_every == 0:
                 self.logger.add_scalar(scalar_value=rewards.mean(), tag="Reward/train")
 
             self.replay_buffer.push(states, actions.detach(), rewards, action_log_prs.detach(), schedule_decisions)

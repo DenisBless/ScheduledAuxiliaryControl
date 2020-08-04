@@ -5,7 +5,7 @@ import random
 
 
 class ReplayBuffer(object):
-    def __init__(self, num_obs: int, num_actions: int, num_intentions, trajectory_length: int, capacity: int):
+    def __init__(self, num_obs: int, num_actions: int, num_intentions: int, trajectory_length: int, capacity: int):
         self.capacity = capacity
         self.num_actions = num_actions
         self.num_obs = num_obs
@@ -28,7 +28,7 @@ class ReplayBuffer(object):
                 self.reward_memory[idx].squeeze(dim=0), self.log_prob_memory[idx].squeeze(dim=0),
                 self.intentions_memory.squeeze(dim=0)]
 
-    def push(self, states, actions, rewards, log_probs) -> None:
+    def push(self, states, actions, rewards, log_probs, schedule_decisions) -> None:
         self.state_memory[self.position] = states
         self.action_memory[self.position] = actions
         self.reward_memory[self.position] = rewards
@@ -51,10 +51,11 @@ class SharedReplayBuffer(ReplayBuffer):
     def __init__(self,
                  num_obs: int,
                  num_actions: int,
+                 num_intentions: int,
                  trajectory_length: int,
                  capacity: int,
                  cv: Condition):
-        super(SharedReplayBuffer, self).__init__(num_obs, num_actions, trajectory_length, capacity)
+        super(SharedReplayBuffer, self).__init__(num_obs, num_actions, num_intentions, trajectory_length, capacity)
 
         self.cv = cv
         self.state_memory.share_memory_()
@@ -66,12 +67,12 @@ class SharedReplayBuffer(ReplayBuffer):
         self.position.share_memory_()
         self.full.share_memory_()
 
-    def push(self, states, actions, rewards, log_probs) -> None:
+    def push(self, states, actions, rewards, log_probs, schedule_decisions) -> None:
         with self.cv:
             assert self.position.is_shared()
             assert self.state_memory.is_shared()
 
-            super().push(states, actions, rewards, log_probs)
+            super().push(states, actions, rewards, log_probs, schedule_decisions)
 
     def sample(self):
         return super().sample()

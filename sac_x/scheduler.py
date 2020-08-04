@@ -1,9 +1,8 @@
 import torch
 from abc import ABC, abstractmethod
-from torch.distributions.uniform import Uniform
 
 
-class Base(metaclass=ABC):
+class Scheduler(metaclass=ABC):
     def __init__(self, num_intentions):
         self.num_intentions = num_intentions
 
@@ -15,17 +14,17 @@ class Base(metaclass=ABC):
         Returns:
             Index of the sampled intention.
         """
-        ...
+        raise NotImplementedError
 
     @abstractmethod
     def update(self) -> None:
         """
         Updates the scheduler according to its update rule.
         """
-        ...
+        raise NotImplementedError
 
 
-class SacU(Base):
+class SacU(Scheduler):
     def __init__(self, num_intentions):
         super(SacU, self).__init__(num_intentions)
 
@@ -39,7 +38,7 @@ class SacU(Base):
         pass
 
 
-class SacQ(Base):
+class SacQ(Scheduler):
     def __init__(self, num_intentions, M):
         super(SacQ, self).__init__(num_intentions)
         self.num_intentions = num_intentions

@@ -41,7 +41,6 @@ class Learner:
 
         self.update_targnets_every = argp.update_targnets_every
         self.learning_steps = argp.learning_steps
-        self.smoothing_coefficient = argp.smoothing_coefficient
         self.global_gradient_norm = argp.global_gradient_norm
 
     def learn(self) -> None:
@@ -129,28 +128,10 @@ class Learner:
                 # print(current_mean[:10])
                 self.logger.add_histogram(values=current_actions, tag="Statistics/Action")
 
-    def update_targnets(self, smoothing_coefficient=1.) -> None:
+    def update_targnets(self) -> None:
         """
-        Update the target actor and the target critic by copying the parameter from the updated networks. If the
-        smoothing coefficient is 1 then updates are hard otherwise the parameter update is smoothed according to.
-
-        param' = (1 - smoothing_coefficient) * target param + smoothing_coefficient * param
-
-        Returns:
-            No return value
+        Update the target actor and the target critic by copying the parameter from the updated networks. I
         """
-        if smoothing_coefficient == 1:
-            self.target_actor.load_state_dict(self.actor.state_dict())
-            self.target_critic.load_state_dict(self.critic.state_dict())
-        else:
-            assert 0 < smoothing_coefficient < 1
-            with torch.no_grad():
-                for a_param, a_target_param in zip(self.actor.parameters(), self.target_actor.parameters()):
-                    a_target_param.data.mul_(1 - smoothing_coefficient)
-                    torch.add(a_target_param.data, a_param.data, alpha=smoothing_coefficient,
-                              out=a_target_param.data)
+        self.target_actor.load_state_dict(self.actor.state_dict())
+        self.target_critic.load_state_dict(self.critic.state_dict())
 
-                for c_param, c_target_param in zip(self.critic.parameters(), self.target_critic.parameters()):
-                    c_target_param.data.mul_(1 - smoothing_coefficient)
-                    torch.add(c_target_param.data, c_param.data, alpha=smoothing_coefficient,
-                              out=c_target_param.data)
