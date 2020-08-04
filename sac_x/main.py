@@ -1,4 +1,5 @@
 import torch.multiprocessing as mp
+from six.moves import input as raw_input
 
 from sac_x.utils.arg_parser import ArgParser
 from sac_x.sampler import Sampler
@@ -19,12 +20,12 @@ class Agent:
 
         actor = Actor(num_intentions=parser_args.num_intentions,
                       num_actions=parser_args.num_actions,
-                      num_obs=parser_args.num_obs,
-                      std_init=parser_args.std_init)
+                      num_obs=parser_args.num_observations,
+                      std_init=parser_args.init_std)
 
         critic = Critic(num_intentions=parser_args.num_intentions,
                         num_actions=parser_args.num_actions,
-                        num_obs=parser_args.num_obs)
+                        num_obs=parser_args.num_observations)
 
         self.sampler = Sampler(env=env, actor=actor, replay_buffer=replay_buffer, scheduler=scheduler, argp=parser_args)
         self.learner = Learner(actor=actor, critic=critic, parameter_server=param_server,

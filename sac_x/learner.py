@@ -30,11 +30,10 @@ class Learner:
         self.cv = self.parameter_server.worker_cv
 
         self.num_actions = parser_args.num_actions
-        self.num_obs = parser_args.num_obs
+        self.num_obs = parser_args.num_observations
 
         self.logger = logger
-        self.logging = parser_args.logging
-        self.log_every = parser_args.log_interval
+        self.log_every = 10
 
         self.actor_loss = ActorLoss(alpha=parser_args.entropy_reg, num_intentions=parser_args.num_intentions)
         self.critic_loss = Retrace(num_actions=self.num_actions, num_intentions=parser_args.num_intentions)
@@ -48,7 +47,7 @@ class Learner:
         self.num_grads = parser_args.num_grads
         self.grad_ctr = 0
 
-        if parser_args.num_worker > 1:
+        if parser_args.num_workers > 1:
             self.process_id = current_process()._identity[0]  # process ID
         else:
             self.process_id = 1
@@ -130,7 +129,7 @@ class Learner:
                     self.grad_ctr = 0
 
             # Keep track of different values
-            if self.process_id == 1 and self.logging and i % self.log_every == 0:
+            if (self.process_id == 1) and (self.logger is not None) and (i % self.log_every == 0):
                 pass
 
         self.actor.copy_params(self.parameter_server.shared_actor)

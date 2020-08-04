@@ -21,10 +21,10 @@ class Sampler:
         self.num_trajectories = argp.num_trajectories
         self.trajectory_length = argp.num_trajectories
         self.schedule_switch = argp.schedule_switch
-        self.log_every = argp.log_interval
+        self.log_every = 10
 
         self.logger = logger
-        if argp.num_worker > 1:
+        if argp.num_workers > 1:
             self.process_id = current_process()._identity[0]  # process ID
         else:
             self.process_id = 1
@@ -43,7 +43,7 @@ class Sampler:
                     h += 1
                 schedule_decisions.append(intention_idx)
 
-                mean, log_std = self.actor.forward(obs, intention_idx)
+                mean, log_std = self.actor(obs, intention_idx)
                 action, action_log_pr = self.actor.action_sample(mean, log_std)
                 next_obs, reward, done, _ = self.env.step(action.detach().cpu())
                 next_obs = torch.tensor(next_obs, dtype=torch.float)

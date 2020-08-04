@@ -2,7 +2,7 @@ import torch
 from abc import ABC, abstractmethod
 
 
-class Scheduler(metaclass=ABC):
+class Scheduler(ABC):
     def __init__(self, num_intentions):
         self.num_intentions = num_intentions
 
@@ -39,10 +39,11 @@ class SacU(Scheduler):
 
 
 class SacQ(Scheduler):
-    def __init__(self, parser_args, M=50):
+    def __init__(self, parser_args, M=50, temperature=1):
         super(SacQ, self).__init__(parser_args.num_intentions)
         self.num_intentions = parser_args.num_intentions
         self.M = M
+        self.temperature = temperature
         self.Q_table = ...
 
     def sample_intention(self) -> torch.Tensor:

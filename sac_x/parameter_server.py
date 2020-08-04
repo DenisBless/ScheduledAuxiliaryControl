@@ -25,7 +25,7 @@ class ParameterServer:
     def __init__(self, parser_args, worker_cv: Condition, server_cv: Condition):
 
         self.num_actions = parser_args.num_actions
-        self.num_obs = parser_args.num_obs
+        self.num_obs = parser_args.num_observations
         self.num_intentions = parser_args.num_intentions
         self.G = parser_args.num_workers * parser_args.num_grads  # number of gradients before updating networks
 
@@ -36,14 +36,14 @@ class ParameterServer:
 
         self.shared_actor = Actor(num_intentions=parser_args.num_intentions,
                                   num_actions=parser_args.num_actions,
-                                  num_obs=parser_args.num_obs,
-                                  std_init=parser_args.std_init)
+                                  num_obs=parser_args.num_observations,
+                                  std_init=parser_args.init_std)
 
         self.shared_actor.share_memory()
 
         self.shared_critic = Critic(num_intentions=parser_args.num_intentions,
                                     num_actions=parser_args.num_actions,
-                                    num_obs=parser_args.num_obs)
+                                    num_obs=parser_args.num_observations)
 
         self.shared_critic.share_memory()
 

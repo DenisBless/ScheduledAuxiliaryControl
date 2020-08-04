@@ -1,13 +1,15 @@
 import torch
 import torch.nn as nn
-from typing import List
 import numpy as np
+
+from typing import List, Tuple
+from torch.distributions.normal import Normal
 
 
 class Base(nn.Module):
     def __init__(self,
                  base_layer_dims: List,
-                 non_linearity: nn.Module = nn.ReLU):
+                 non_linearity: nn.Module = nn.ReLU()):
         super(Base, self).__init__()
 
         base_modules = []
@@ -79,7 +81,7 @@ class Actor(Base):
                  base_layer_dims: List = None,
                  intention_layer_dims: List = None,
                  std_init: float = -2.,
-                 non_linearity: nn.Module = nn.ReLU,
+                 non_linearity: nn.Module = nn.ReLU(),
                  eps: float = 1e-6,
                  logger=None):
 
@@ -120,12 +122,12 @@ class Actor(Base):
 
     def predict(self, x, intention_idx=None):
         assert 0 <= intention_idx < self.num_intentions
-        assert self.log_std[intention_idx].shape == [self.num_actions]
+        assert list(self.log_std[intention_idx].shape) == [1, self.num_actions]
 
         x = self.base_model(x)
 
         if intention_idx is None:
-            means = torch.FloatTensor([self.num_intentions, self.num_actions])
+            means = torch.tensor([self.num_intentions, self.num_actions], dtype=torch.float32)
             for i in range(self.num_intentions):
                 means[i, :] = self.intention_nets[i](x)
             return means, self.log_std
@@ -133,12 +135,87 @@ class Actor(Base):
         else:
             mean = self.intention_nets[intention_idx](x)
             return mean, self.log_std[intention_idx]
-        #
-        # dist = torch.distributions.Normal(loc=mean, scale=self.log_std[intention_idx])
-        # raw_action = dist.rsample()  # rsample() enables reparameterization trick
-        # action = torch.tanh(raw_action)
-        # log_prob = dist.log_prob(raw_action).sum(dim=-1) - torch.sum(torch.log((1 - action.pow(2) + self.eps)), dim=-1)
-        # return action, log_prob
+
+    def action_sample(self, mean: torch.Tensor, log_std: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Creates an action sample from the policy network. The output of the network is assumed to be gaussian
+        distributed. Let u be a random variable with distribution p(u|s). Since we want our actions to be bound in
+        [-1, 1] we apply the tanh function to u, that is a = tanh(u). By change of variable, we have:
+
+        π(a|s) = p(u|s) |det(da/du)| ^-1. Since da/du = diag(1 - tanh^2(u)). We obtain the log likelihood as
+        log π(a|s) = log p(u|s) - ∑_i 1 - tanh^2(u_i)
+
+        Args:
+            mean: μ(s)
+            log_std: log σ(s) where u ~ N(•|μ(s), σ(s))
+
+        Returns:
+            action sample a = tanh(u) and log prob log π(a|s)
+        """
+        dist = self.normal_dist(mean, log_std)
+        normal_action = dist.rsample()  # rsample() employs reparameterization trick
+        action = torch.tanh(normal_action)
+        normal_log_prob = dist.log_prob(normal_action)
+        log_prob = torch.sum(normal_log_prob, dim=-1) - torch.sum(torch.log((1 - action.pow(2) + self.eps)), dim=-1)
+        return action, log_prob
+
+    def get_log_prob(self, actions: torch.Tensor, mean: torch.Tensor, log_std: torch.Tensor,
+                     normal_actions: torch.Tensor = None) -> torch.Tensor:
+        """
+        Returns the log prob of a given action a = tanh(u) and u ~ N(•|μ(s), σ(s)) according to
+
+        log π(a|s) = log p(u|s) - ∑_i 1 - tanh^2(u_i).
+
+        If u is not given we can reconstruct it with u = tanh^-1(a), since tanh is bijective.
+
+        Args:
+            actions: a = tanh(u)
+            mean: μ(s)
+            log_std: log σ(s)
+            normal_actions: u ~ N(•|μ(s), σ(s))
+
+        Returns:
+            log π(a|s)
+        """
+        if normal_actions is None:
+            normal_actions = self.inverseTanh(actions)
+
+        normal_log_probs = self.normal_dist(mean, log_std).log_prob(normal_actions)
+        log_probs = torch.sum(normal_log_probs, dim=-1) - torch.sum(torch.log(1 - actions.pow(2) + self.eps), dim=-1)
+        assert not torch.isnan(log_probs).any()
+        return log_probs
+
+    @staticmethod
+    def normal_dist(mean: torch.Tensor, log_std: torch.Tensor) -> Normal:
+        """
+        Returns a normal distribution.
+
+        Args:
+            mean: μ(s)
+            log_std: log σ(s) where u ~ N(•|μ(s), σ(s))
+
+        Returns:
+            N(u|μ(s), σ(s))
+        """
+        return Normal(loc=mean, scale=log_std.exp())
+
+    def inverseTanh(self, action: torch.Tensor) -> torch.Tensor:
+        """
+        Computes the inverse of the tanh for the given action
+        Args:
+            action: a = tanh(u)
+
+        Returns:
+            u = tanh^-1(a)
+        """
+        eps = torch.finfo(action.dtype).eps  # The smallest representable number such that 1.0 + eps != 1.0
+        atanh = self.atanh(action.clamp(min=-1. + eps, max=1. - eps))
+        assert not torch.isnan(atanh).any()
+        return atanh
+
+    @staticmethod
+    def atanh(action: torch.Tensor) -> torch.Tensor:
+        return 0.5 * (action.log1p() - (-action).log1p())
 
 
 class Critic(Base):
@@ -148,7 +225,7 @@ class Critic(Base):
                  num_obs: int,
                  base_layer_dims: List = None,
                  intention_layer_dims: List = None,
-                 non_linearity: nn.Module = nn.ReLU,
+                 non_linearity: nn.Module = nn.ReLU(),
                  logger=None):
 
         if base_layer_dims is None:
@@ -187,7 +264,7 @@ class Critic(Base):
     def forward(self, x):
         x = self.base_model(x)
 
-        Q_values = torch.FloatTensor([self.num_intentions, 1])
+        Q_values = torch.tensor([self.num_intentions, 1], dtype=torch.float32)
         for i in range(self.num_intentions):
             Q_values[i, :] = self.intention_nets[i](x[i])
 

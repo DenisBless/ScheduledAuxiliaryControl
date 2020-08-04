@@ -49,7 +49,7 @@ class ReplayBuffer(object):
 
 class SharedReplayBuffer(ReplayBuffer):
     def __init__(self, parser_args, cv: Condition):
-        super(SharedReplayBuffer, self).__init__(parser_args.num_obs, parser_args.num_actions,
+        super(SharedReplayBuffer, self).__init__(parser_args.num_observations, parser_args.num_actions,
                                                  parser_args.num_intentions, parser_args.episode_length,
                                                  parser_args.replay_buffer_size)
 
