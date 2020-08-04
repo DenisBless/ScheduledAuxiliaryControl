@@ -19,7 +19,7 @@ class Sampler:
         self.replay_buffer = replay_buffer
         self.scheduler = scheduler
         self.num_trajectories = argp.num_trajectories
-        self.trajectory_length = argp.num_trajectories
+        self.trajectory_length = argp.episode_length
         self.schedule_switch = argp.schedule_switch
         self.log_every = 10
 
@@ -47,7 +47,7 @@ class Sampler:
                 action, action_log_pr = self.actor.action_sample(mean, log_std)
                 next_obs, reward, done, _ = self.env.step(action.detach().cpu())
                 next_obs = torch.tensor(next_obs, dtype=torch.float)
-                reward = reward.clone().detach()
+                reward = torch.tensor(reward, dtype=torch.float)
                 states.append(obs)
                 actions.append(action)
                 rewards.append(reward)

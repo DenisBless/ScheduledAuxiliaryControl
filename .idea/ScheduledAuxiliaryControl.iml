@@ -5,7 +5,7 @@
       <excludeFolder url="file://$MODULE_DIR$/sac" />
     </content>
     <content url="file://$MODULE_DIR$/../SimulationFramework" />
-    <orderEntry type="jdk" jdkName="Python 3.8 (ContinousActionRL)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.7 (ALR)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">

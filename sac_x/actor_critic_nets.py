@@ -102,39 +102,38 @@ class Actor(Base):
 
         # Create a model for a intention net
         intention_modules = []
+        intention_modules.append(nn.Linear(base_layer_dims[-1], intention_layer_dims[0]))
         for i in range(len(intention_layer_dims) - 1):
             intention_modules.append(nn.Linear(intention_layer_dims[i], intention_layer_dims[i + 1]))
             intention_modules.append(non_linearity)
-        intention_modules.append(nn.Linear(intention_layer_dims[-1], num_actions))
+        intention_modules.append(nn.Linear(intention_layer_dims[-1], 2 * num_actions))
 
         # Create all intention nets
         self.intention_nets = []
         for i in range(num_intentions):
-            intention_net = nn.Sequential(*intention_modules[:-1])  # Remove last non-linearity
+            intention_net = nn.Sequential(*intention_modules)  # Remove last non-linearity
             self.init_weights(intention_net)
             self.intention_nets.append(intention_net)
-
-        # state independent action noise
-        self.log_std = torch.nn.Parameter(torch.ones(num_intentions, num_actions) * self.log_std_init)
 
     def __call__(self, x, intention_idx):
         return self.predict(x, intention_idx)
 
     def predict(self, x, intention_idx=None):
         assert 0 <= intention_idx < self.num_intentions
-        assert list(self.log_std[intention_idx].shape) == [1, self.num_actions]
 
         x = self.base_model(x)
 
         if intention_idx is None:
-            means = torch.tensor([self.num_intentions, self.num_actions], dtype=torch.float32)
+            mean = torch.tensor([self.num_intentions, self.num_actions], dtype=torch.float32)
+            log_std = torch.tensor([self.num_intentions, self.num_actions], dtype=torch.float32)
             for i in range(self.num_intentions):
-                means[i, :] = self.intention_nets[i](x)
-            return means, self.log_std
-
+                mean[i, :] = self.intention_nets[i](x)[:, :self.num_actions]
+                log_std[i, :] = self.intention_nets[i](x)[:, self.num_actions:]
         else:
-            mean = self.intention_nets[intention_idx](x)
-            return mean, self.log_std[intention_idx]
+            mean = self.intention_nets[intention_idx](x)[:self.num_actions]
+            log_std = self.intention_nets[intention_idx](x)[self.num_actions:]
+
+        return mean, log_std
 
     def action_sample(self, mean: torch.Tensor, log_std: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -243,6 +242,7 @@ class Critic(Base):
 
         # Create a model for a intention net
         intention_modules = []
+        intention_modules.append(nn.Linear(base_layer_dims[-1], intention_layer_dims[0]))
         for i in range(len(intention_layer_dims) - 1):
             intention_modules.append(nn.Linear(intention_layer_dims[i], intention_layer_dims[i + 1]))
             intention_modules.append(non_linearity)
@@ -251,7 +251,7 @@ class Critic(Base):
         # Create all intention nets
         self.intention_nets = []
         for i in range(num_intentions):
-            intention_net = nn.Sequential(*intention_modules[:-1])  # Remove last non-linearity
+            intention_net = nn.Sequential(*intention_modules)  # Remove last non-linearity
             self.init_weights(intention_net)
             self.intention_nets.append(intention_net)
 
