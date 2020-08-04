@@ -48,14 +48,10 @@ class ReplayBuffer(object):
 
 
 class SharedReplayBuffer(ReplayBuffer):
-    def __init__(self,
-                 num_obs: int,
-                 num_actions: int,
-                 num_intentions: int,
-                 trajectory_length: int,
-                 capacity: int,
-                 cv: Condition):
-        super(SharedReplayBuffer, self).__init__(num_obs, num_actions, num_intentions, trajectory_length, capacity)
+    def __init__(self, parser_args, cv: Condition):
+        super(SharedReplayBuffer, self).__init__(parser_args.num_obs, parser_args.num_actions,
+                                                 parser_args.num_intentions, parser_args.episode_length,
+                                                 parser_args.replay_buffer_size)
 
         self.cv = cv
         self.state_memory.share_memory_()

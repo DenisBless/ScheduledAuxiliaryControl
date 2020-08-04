@@ -43,7 +43,7 @@ class Learner:
         self.learning_steps = argp.learning_steps
         self.global_gradient_norm = argp.global_gradient_norm
 
-    def learn(self) -> None:
+    def run(self) -> None:
         """
         Calculates gradients w.r.t. the actor and the critic and sends them to a shared parameter server. Whenever
         the server has accumulated G gradients, the parameter of the shared critic and actor are updated and sent

@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 from typing import Union, List
 from torch.multiprocessing import Condition
 from functools import reduce
@@ -23,29 +22,39 @@ class ParameterServer:
         p -= η * g
     """
 
-    def __init__(self, actor_lr: float, critic_lr: float, num_actions: int, num_obs: int,
-                 worker_cv: Condition, server_cv: Condition, arg_parser):
+    def __init__(self, parser_args, worker_cv: Condition, server_cv: Condition):
 
-        self.G = arg_parser.num_workers * arg_parser.num_grads  # number of gradients before updating networks
+        self.num_actions = parser_args.num_actions
+        self.num_obs = parser_args.num_obs
+        self.num_intentions = parser_args.num_intentions
+        self.G = parser_args.num_workers * parser_args.num_grads  # number of gradients before updating networks
+
         self.N = torch.tensor(0)  # current number of gradients
         self.N.share_memory_()
         self.worker_cv = worker_cv
         self.server_cv = server_cv
 
-        self.shared_actor = Actor(num_actions=num_actions, num_obs=num_obs)
+        self.shared_actor = Actor(num_intentions=parser_args.num_intentions,
+                                  num_actions=parser_args.num_actions,
+                                  num_obs=parser_args.num_obs,
+                                  std_init=parser_args.std_init)
+
         self.shared_actor.share_memory()
 
-        self.shared_critic = Critic(num_actions=num_actions, num_obs=num_obs)
+        self.shared_critic = Critic(num_intentions=parser_args.num_intentions,
+                                    num_actions=parser_args.num_actions,
+                                    num_obs=parser_args.num_obs)
+
         self.shared_critic.share_memory()
 
         self.actor_grads, self.critic_grads = self.init_grad()
 
-        self.actor_optimizer = SharedAdam(self.shared_actor.parameters(), actor_lr)
+        self.actor_optimizer = SharedAdam(self.shared_actor.parameters(), parser_args.actor_lr)
         self.actor_optimizer.share_memory()
-        self.critic_optimizer = SharedAdam(self.shared_critic.parameters(), critic_lr)
+        self.critic_optimizer = SharedAdam(self.shared_critic.parameters(), parser_args.critic_lr)
         self.critic_optimizer.share_memory()
 
-        self.global_gradient_norm = arg_parser.global_gradient_norm
+        self.global_gradient_norm = parser_args.global_gradient_norm
 
     def run(self) -> None:
         print("Parameter server started.")

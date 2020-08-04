@@ -25,8 +25,8 @@ class Scheduler(metaclass=ABC):
 
 
 class SacU(Scheduler):
-    def __init__(self, num_intentions):
-        super(SacU, self).__init__(num_intentions)
+    def __init__(self, parser_args):
+        super(SacU, self).__init__(parser_args.num_intentions)
 
     def sample_intention(self) -> torch.Tensor:
         """
@@ -39,9 +39,9 @@ class SacU(Scheduler):
 
 
 class SacQ(Scheduler):
-    def __init__(self, num_intentions, M):
-        super(SacQ, self).__init__(num_intentions)
-        self.num_intentions = num_intentions
+    def __init__(self, parser_args, M=50):
+        super(SacQ, self).__init__(parser_args.num_intentions)
+        self.num_intentions = parser_args.num_intentions
         self.M = M
         self.Q_table = ...
 
