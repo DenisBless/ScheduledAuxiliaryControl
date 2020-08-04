@@ -8,12 +8,14 @@ from sac_x.replay_buffer import SharedReplayBuffer
 from sac_x.scheduler import SacU
 from sac_x.actor_critic_nets import Actor, Critic
 
+from simulation.src.gym_sf.mujoco.mujoco_envs.stack_env.stack_env import StackEnv
+
 arg_parser = ArgParser()
 
 
 class Agent:
     def __init__(self, param_server, replay_buffer, scheduler, parser_args):
-        env = ...
+        env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.015, dt=1e-2)
 
         actor = Actor(num_intentions=parser_args.num_intentions,
                       num_actions=parser_args.num_actions,
@@ -25,7 +27,9 @@ class Agent:
                         num_obs=parser_args.num_obs)
 
         self.sampler = Sampler(env=env, actor=actor, replay_buffer=replay_buffer, scheduler=scheduler, argp=parser_args)
-        self.learner = Learner(actor=actor, critic=critic, replay_buffer=replay_buffer, parser_args=parser_args)
+        self.learner = Learner(actor=actor, critic=critic, parameter_server=param_server,
+                               replay_buffer=replay_buffer, parser_args=parser_args)
+
         self.num_runs = parser_args.num_runs
 
     def run(self):
@@ -34,7 +38,7 @@ class Agent:
             self.learner.run()
 
 
-def work(param_server, replay_buffer, scheduler, parser_args, condition):
+def work(param_server, replay_buffer, scheduler, parser_args):
     worker = Agent(param_server=param_server,
                    replay_buffer=replay_buffer,
                    scheduler=scheduler,

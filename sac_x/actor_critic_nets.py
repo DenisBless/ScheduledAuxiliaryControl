@@ -142,7 +142,6 @@ class Actor(Base):
 
 
 class Critic(Base):
-
     def __init__(self,
                  num_intentions: int,
                  num_actions: int,
@@ -179,10 +178,13 @@ class Critic(Base):
             self.init_weights(intention_net)
             self.intention_nets.append(intention_net)
 
-    def forward(self, actions, observations):
+    def __call__(self, actions, observations):
         assert actions.shape == (self.num_intentions, self.num_actions)
         assert observations.shape == self.num_obs
         x = torch.cat([actions, observations.expand(self.num_intentions, observations.shape[0])], dim=-1)
+        return self.forward(x)
+
+    def forward(self, x):
         x = self.base_model(x)
 
         Q_values = torch.FloatTensor([self.num_intentions, 1])

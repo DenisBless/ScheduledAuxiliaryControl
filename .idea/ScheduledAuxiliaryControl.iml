@@ -4,7 +4,8 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/sac" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.8 (ScheduledAuxiliaryControl)" jdkType="Python SDK" />
+    <content url="file://$MODULE_DIR$/../SimulationFramework" />
+    <orderEntry type="jdk" jdkName="Python 3.8 (ContinousActionRL)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">

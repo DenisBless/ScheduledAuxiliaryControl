@@ -1,6 +1,7 @@
 import copy
 import torch
-from torch.multiprocessing import current_process, Condition
+from torch.multiprocessing import current_process
+from torch.utils.tensorboard import SummaryWriter
 
 from sac_x.loss_fn import ActorLoss, Retrace
 from sac_x.replay_buffer import SharedReplayBuffer
@@ -13,9 +14,8 @@ class Learner:
                  critic: torch.nn.Module,
                  parameter_server: ParameterServer,
                  replay_buffer: SharedReplayBuffer,
-                 cv: Condition,
                  parser_args,
-                 logger=None):
+                 logger: SummaryWriter = None):
 
         self.actor = actor
         self.critic = critic
@@ -27,7 +27,7 @@ class Learner:
 
         self.parameter_server = parameter_server
         self.replay_buffer = replay_buffer
-        self.cv = cv
+        self.cv = self.parameter_server.worker_cv
 
         self.num_actions = parser_args.num_actions
         self.num_obs = parser_args.num_obs
