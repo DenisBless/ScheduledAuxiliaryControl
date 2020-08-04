@@ -2,8 +2,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 class Logger(SummaryWriter):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, log_dir=None):
+        super().__init__(log_dir=log_dir)
 
     def log_rewards(self, auxiliary, external_task):
         self.add_scalar(tag='auxiliary_rewards/close', scalar_value=auxiliary[...])

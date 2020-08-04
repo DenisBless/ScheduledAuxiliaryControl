@@ -1,6 +1,8 @@
+import pathlib
 import torch.multiprocessing as mp
 
 from sac_x.utils.arg_parser import ArgParser
+from sac_x.utils.logger import Logger
 from sac_x.sampler import Sampler
 from sac_x.learner import Learner
 from sac_x.parameter_server import ParameterServer
@@ -11,18 +13,24 @@ from sac_x.actor_critic_nets import Actor, Critic
 from simulation.src.gym_sf.mujoco.mujoco_envs.stack_env.stack_env import StackEnv
 
 arg_parser = ArgParser()
+MODEL_DIR = str(pathlib.Path(__file__).resolve().parents[1]) + "/models/"
 
 
 class Agent:
     def __init__(self, param_server, replay_buffer, scheduler, parser_args):
-        env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.015, dt=1e-2)
+        self.process_id = mp.current_process()._identity[0]  # process ID
+        logger = Logger() if self.process_id == 1 else None
+
+        with param_server.worker_cv:
+            env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.015, dt=1e-2)
 
         actor = Actor(parser_args=parser_args)
         critic = Critic(parser_args=parser_args)
 
-        self.sampler = Sampler(env=env, actor=actor, replay_buffer=replay_buffer, scheduler=scheduler, argp=parser_args)
+        self.sampler = Sampler(env=env, actor=actor, replay_buffer=replay_buffer, scheduler=scheduler,
+                               argp=parser_args, logger=logger)
         self.learner = Learner(actor=actor, critic=critic, parameter_server=param_server,
-                               replay_buffer=replay_buffer, parser_args=parser_args)
+                               replay_buffer=replay_buffer, parser_args=parser_args, logger=logger)
 
         self.num_runs = parser_args.num_runs
 

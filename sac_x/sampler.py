@@ -1,5 +1,6 @@
 import torch
 from torch.multiprocessing import current_process
+from torch.utils.tensorboard import SummaryWriter
 
 from sac_x.replay_buffer import SharedReplayBuffer
 from sac_x.scheduler import Scheduler
@@ -12,7 +13,7 @@ class Sampler:
                  replay_buffer: SharedReplayBuffer,
                  scheduler: Scheduler,
                  argp,
-                 logger=None):
+                 logger: SummaryWriter = None):
 
         self.env = env
         self.actor = actor
