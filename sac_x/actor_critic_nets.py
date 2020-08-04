@@ -72,16 +72,24 @@ class Base(nn.Module):
             nn.init.orthogonal_(module.weight)
             module.bias.data.fill_(0.0)
 
+    def has_zero_grads(self):
+        for params in self.parameters():
+            assert params.grad.sum() == 0
+
+    @property
+    def param_norm(self):
+        return torch.norm(torch.stack([torch.norm(p.detach()) for p in self.parameters()]))
+
+    @property
+    def grad_norm(self):
+        return torch.norm(torch.stack([torch.norm(p.grad.detach()) for p in self.parameters()]))
+
 
 class Actor(Base):
     def __init__(self,
-                 num_intentions: int,
-                 num_actions: int,
-                 num_obs: int,
                  parser_args,
                  base_layer_dims: List = None,
                  intention_layer_dims: List = None,
-                 std_init: float = -2.,
                  non_linearity: nn.Module = nn.ReLU(),
                  eps: float = 1e-6,
                  logger=None):
@@ -90,14 +98,12 @@ class Actor(Base):
             base_layer_dims = [64, 64]
         if intention_layer_dims is None:
             intention_layer_dims = [32]
-        assert std_init > 0
 
-        super(Actor, self).__init__(base_layer_dims=[num_obs] + base_layer_dims,
+        super(Actor, self).__init__(base_layer_dims=[parser_args.num_observations] + base_layer_dims,
                                     non_linearity=non_linearity)
 
-        self.num_intentions = num_intentions
-        self.num_actions = num_actions
-        self.log_std_init = np.log(std_init)
+        self.num_intentions = parser_args.num_intentions
+        self.num_actions = parser_args.num_actions
         self.eps = eps
         self.logger = logger
 
@@ -105,13 +111,13 @@ class Actor(Base):
 
         # Create all intention nets
         self.intention_nets = nn.ModuleList()
-        for _ in range(num_intentions):
+        for _ in range(self.num_intentions):
             # Create a model for a intention net
             intention_modules = [nn.Linear(base_layer_dims[-1], intention_layer_dims[0])]
             for i in range(len(intention_layer_dims) - 1):
                 intention_modules.append(nn.Linear(intention_layer_dims[i], intention_layer_dims[i + 1]))
                 intention_modules.append(non_linearity)
-            intention_modules.append(nn.Linear(intention_layer_dims[-1], 2 * num_actions))
+            intention_modules.append(nn.Linear(intention_layer_dims[-1], 2 * self.num_actions))
 
             self.intention_nets.append(nn.Sequential(*intention_modules))
 
@@ -219,9 +225,6 @@ class Actor(Base):
 
 class Critic(Base):
     def __init__(self,
-                 num_intentions: int,
-                 num_actions: int,
-                 num_obs: int,
                  parser_args,
                  base_layer_dims: List = None,
                  intention_layer_dims: List = None,
@@ -233,19 +236,19 @@ class Critic(Base):
         if intention_layer_dims is None:
             intention_layer_dims = [64]
 
-        super(Critic, self).__init__(base_layer_dims=[num_actions + num_obs] + base_layer_dims,
-                                     non_linearity=non_linearity)
+        super(Critic, self).__init__(base_layer_dims=[parser_args.num_actions + parser_args.num_observations]
+                                                     + base_layer_dims, non_linearity=non_linearity)
 
-        self.num_intentions = num_intentions
-        self.num_actions = num_actions
-        self.num_obs = num_obs
+        self.num_intentions = parser_args.num_intentions
+        self.num_actions = parser_args.num_actions
+        self.num_obs = parser_args.num_observations
         self.logger = logger
 
         self.episode_length = parser_args.episode_length
 
         # Create all intention nets
         self.intention_nets = nn.ModuleList()
-        for _ in range(num_intentions):
+        for _ in range(self.num_intentions):
             # Create a model for a intention net
             intention_modules = [nn.Linear(base_layer_dims[-1], intention_layer_dims[0])]
             for i in range(len(intention_layer_dims) - 1):

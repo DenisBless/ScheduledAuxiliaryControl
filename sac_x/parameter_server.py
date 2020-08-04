@@ -34,19 +34,10 @@ class ParameterServer:
         self.worker_cv = worker_cv
         self.server_cv = server_cv
 
-        self.shared_actor = Actor(parser_args=parser_args,
-                                  num_intentions=parser_args.num_intentions,
-                                  num_actions=parser_args.num_actions,
-                                  num_obs=parser_args.num_observations,
-                                  std_init=parser_args.init_std)
-
+        self.shared_actor = Actor(parser_args=parser_args)
         self.shared_actor.share_memory()
 
-        self.shared_critic = Critic(parser_args=parser_args,
-                                    num_intentions=parser_args.num_intentions,
-                                    num_actions=parser_args.num_actions,
-                                    num_obs=parser_args.num_observations)
-
+        self.shared_critic = Critic(parser_args=parser_args)
         self.shared_critic.share_memory()
 
         self.actor_grads, self.critic_grads = self.init_grad()

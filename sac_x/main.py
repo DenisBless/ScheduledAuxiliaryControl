@@ -1,5 +1,4 @@
 import torch.multiprocessing as mp
-from six.moves import input as raw_input
 
 from sac_x.utils.arg_parser import ArgParser
 from sac_x.sampler import Sampler
@@ -18,17 +17,8 @@ class Agent:
     def __init__(self, param_server, replay_buffer, scheduler, parser_args):
         env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.015, dt=1e-2)
 
-        # todo just pass parser to actor and critic and init the parameters from the parser
-        actor = Actor(parser_args=parser_args,
-                      num_intentions=parser_args.num_intentions,
-                      num_actions=parser_args.num_actions,
-                      num_obs=parser_args.num_observations,
-                      std_init=parser_args.init_std, )
-
-        critic = Critic(parser_args=parser_args,
-                        num_intentions=parser_args.num_intentions,
-                        num_actions=parser_args.num_actions,
-                        num_obs=parser_args.num_observations)
+        actor = Actor(parser_args=parser_args)
+        critic = Critic(parser_args=parser_args)
 
         self.sampler = Sampler(env=env, actor=actor, replay_buffer=replay_buffer, scheduler=scheduler, argp=parser_args)
         self.learner = Learner(actor=actor, critic=critic, parameter_server=param_server,

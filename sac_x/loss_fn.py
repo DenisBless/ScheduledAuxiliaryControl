@@ -55,10 +55,11 @@ class Retrace:
         Q.squeeze_(dim=-1)
         target_Q.squeeze_(dim=-1)
         expected_target_Q.squeeze_(dim=-1)
+        behaviour_policy_probs.unsqueeze_(dim=0)
+        rewards.transpose_(1, 0)  # [T, #intentions] -> [#intentions, T]
         T = Q.shape[1]
-        assert Q.shape == target_Q.shape == expected_target_Q.shape == rewards.shape == target_policy_probs.shape == \
-               [self.num_intentions, T]
-        assert behaviour_policy_probs.shape == [1, T]
+        assert Q.shape == target_Q.shape == expected_target_Q.shape == rewards.shape == target_policy_probs.shape
+        assert list(behaviour_policy_probs.shape) == [1, T]
 
         with torch.no_grad():
             # We don't want gradients from computing Q_ret, since:
@@ -98,9 +99,6 @@ class Retrace:
         Returns:
             retrace weights c
         """
-        assert target_policy_logprob.shape == behaviour_policy_logprob.shape, \
-            "Error, shape mismatch. Shapes: target_policy_logprob: " \
-            + str(target_policy_logprob.shape) + " mean: " + str(behaviour_policy_logprob.shape)
 
         log_retrace_weights = (target_policy_logprob - behaviour_policy_logprob).clamp(max=0)
         retrace_weights = log_retrace_weights.exp()

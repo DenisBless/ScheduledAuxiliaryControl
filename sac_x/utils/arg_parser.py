@@ -12,7 +12,7 @@ class ArgParser(ArgumentParser):
                           help='Number of gradients collected before updating the networks.')
         self.add_argument('--update_targnets_every', type=int, default=10,
                           help='Number of learning steps before the target networks are updated.')
-        self.add_argument('--learning_steps', type=int, default=200,
+        self.add_argument('--learning_steps', type=int, default=20,
                           help='Total number of learning timesteps before sampling trajectories.')
         self.add_argument('--num_runs', type=int, default=5000,
                           help='Number of learning iterations.')
@@ -42,18 +42,3 @@ class ArgParser(ArgumentParser):
                           help='Number of intentions (auxiliary tasks + external tasks).')
         self.add_argument('--episode_length', type=int, default=360,
                           help='Number of steps the agent interacts with the environment.')
-
-
-
-    def hparam_dict(self):
-        return {'update_targets': ...,
-                'learning_steps': ...,
-                'actor_lr': ...,
-                'critic_lr': ...,
-                'entropy_reg': ...,
-                'init_std': ...,
-                'global_gradient_norm': ...,
-                'replay_buffer_size': ...,
-                'num_trajectories': ...
-                }
-
