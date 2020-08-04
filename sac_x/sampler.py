@@ -1,18 +1,20 @@
 import torch
-import gym
+from torch.multiprocessing import current_process
+
 from sac_x.replay_buffer import SharedReplayBuffer
 from sac_x.scheduler import Scheduler
-from torch.multiprocessing import current_process
 
 
 class Sampler:
     def __init__(self,
+                 env,
                  actor: torch.nn.Module,
                  replay_buffer: SharedReplayBuffer,
                  scheduler: Scheduler,
                  argp,
                  logger=None):
 
+        self.env = env
         self.actor = actor
         self.replay_buffer = replay_buffer
         self.scheduler = scheduler
