@@ -20,8 +20,6 @@ class ArgParser(ArgumentParser):
                           help='Learning rate for the actor network.')
         self.add_argument('--critic_lr', type=float, default=2e-4,
                           help='Learning rate for the critic network.')
-        self.add_argument('--init_std', type=float, default=0.2,
-                          help='Initial standard deviation of the actor.')
         self.add_argument('--global_gradient_norm', type=float, default=0.5,
                           help='Enables gradient clipping with a specified global parameter L2 norm')
         self.add_argument('--entropy_reg', type=float, default=0,
@@ -38,7 +36,7 @@ class ArgParser(ArgumentParser):
                           help='Dimension of the action space.')
         self.add_argument('--num_observations', type=int, default=43,
                           help='Dimension of the observation space.')
-        self.add_argument('--num_intentions', type=int, default=13,
+        self.add_argument('--num_intentions', type=int, default=14,
                           help='Number of intentions (auxiliary tasks + external tasks).')
         self.add_argument('--episode_length', type=int, default=360,
                           help='Number of steps the agent interacts with the environment.')

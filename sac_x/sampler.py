@@ -64,7 +64,7 @@ class Sampler:
             action_log_prs = torch.stack(action_log_prs)
             schedule_decisions = torch.stack(schedule_decisions)
 
-            if self.process_id == 1 and self.logger is not None and i % self.log_every == 0:
-                self.logger.add_scalar(scalar_value=rewards.mean(), tag="Reward/train")
+            # if self.process_id == 1 and self.logger is not None and i % self.log_every == 0:
+            #     self.logger.add_scalar(scalar_value=rewards.mean(), tag="Reward/train")
 
             self.replay_buffer.push(states, actions.detach(), rewards, action_log_prs.detach(), schedule_decisions)
