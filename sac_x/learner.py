@@ -132,7 +132,6 @@ class Learner:
             if (self.process_id == 1) and (self.logger is not None) and (i % self.log_every == 0):
                 self.logger.add_scalar(tag='Loss/Critic', scalar_value=critic_loss)
                 self.logger.add_scalar(tag='Loss/Actor', scalar_value=actor_loss)
-                self.logger.log_rewards(rewards)
 
         self.actor.copy_params(self.parameter_server.shared_actor)
         self.critic.copy_params(self.parameter_server.shared_critic)

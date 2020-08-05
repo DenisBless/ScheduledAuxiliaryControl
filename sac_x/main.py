@@ -5,6 +5,7 @@ from sac_x.utils.arg_parser import ArgParser
 from sac_x.utils.logger import Logger
 from sac_x.sampler import Sampler
 from sac_x.learner import Learner
+from sac_x.evaluator import Evaluator
 from sac_x.parameter_server import ParameterServer
 from sac_x.replay_buffer import SharedReplayBuffer
 from sac_x.scheduler import SacU
@@ -32,12 +33,16 @@ class Agent:
         self.learner = Learner(actor=actor, critic=critic, parameter_server=param_server,
                                replay_buffer=replay_buffer, parser_args=parser_args, logger=logger)
 
+        self.evaluator = Evaluator(env=env, actor=actor, critic=critic, parser_args=parser_args, logger=logger)
+
         self.num_runs = parser_args.num_runs
 
     def run(self):
         for _ in range(self.num_runs):
             self.sampler.run()
             self.learner.run()
+            if self.process_id == 1:
+                self.evaluator.run()
 
 
 def work(param_server, replay_buffer, scheduler, parser_args):
