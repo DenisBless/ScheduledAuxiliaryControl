@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch.multiprocessing import current_process
 from torch.utils.tensorboard import SummaryWriter
@@ -22,6 +23,10 @@ class Sampler:
         self.num_trajectories = argp.num_trajectories
         self.trajectory_length = argp.episode_length
         self.schedule_switch = argp.schedule_switch
+        self.discount_factor = argp.discount_factor
+
+        self.discounts = torch.cumprod(torch.ones([self.trajectory_length - 1]) * 0.99, dim=-1)
+
         self.log_every = 10
 
         self.logger = logger
@@ -40,9 +45,9 @@ class Sampler:
 
                 # Sample an intention from the scheduler
                 if t % self.schedule_switch == 0:
-                    intention_idx = self.scheduler.sample_intention()
+                    intention_idx = self.scheduler.sample_intention(h)
+                    schedule_decisions.append(intention_idx[0])
                     h += 1
-                schedule_decisions.append(intention_idx)
 
                 mean, log_std = self.actor(obs, intention_idx)
                 action, action_log_pr = self.actor.action_sample(mean, log_std)
@@ -55,8 +60,6 @@ class Sampler:
                 action_log_prs.append(action_log_pr)
                 obs = next_obs
 
-            self.scheduler.update()  # Update the scheduler
-
             # turn lists into tensors
             states = torch.stack(states)
             actions = torch.stack(actions)
@@ -64,7 +67,7 @@ class Sampler:
             action_log_prs = torch.stack(action_log_prs)
             schedule_decisions = torch.stack(schedule_decisions)
 
-            # if self.process_id == 1 and self.logger is not None and i % self.log_every == 0:
-            #     self.logger.add_scalar(scalar_value=rewards.mean(), tag="Reward/train")
-
-            self.replay_buffer.push(states, actions.detach(), rewards, action_log_prs.detach(), schedule_decisions)
+            # main_cum_reward = rewards[0, 13] + (rewards[1:, 13] * self.discounts).sum()
+            self.scheduler.update(None, schedule_decisions)  # Update the scheduler
+            self.replay_buffer.push(states.detach(), actions.detach(), rewards.detach(), action_log_prs.detach(),
+                                    schedule_decisions)

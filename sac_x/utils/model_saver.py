@@ -21,5 +21,5 @@ class ModelSaver:
 
     def save_model(self, model, name: str):
         if self.ctr != 0 and self.ctr % self.save_every == 0:
-            torch.save(model, self.model_dir + "/" + name + "_" + self.ctr)
-        self.ctr +=1
+            torch.save(model, self.model_dir + "/" + name + "_" + str(self.ctr))
+        self.ctr += 1

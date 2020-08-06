@@ -32,15 +32,13 @@ class Evaluator:
             obs = torch.tensor(self.env.reset(), dtype=torch.float)
             for t in range(self.trajectory_length):
                 mean, log_std = self.actor(obs, intention_idx)
-                action, action_log_pr = self.actor.action_sample(mean, torch.zeros_like(mean) * -1e10)
+                action, action_log_pr = self.actor.action_sample(mean, torch.ones_like(mean) * -1e10)
                 next_obs, reward, done, _ = self.env.step(action.detach().cpu())
                 next_obs = torch.tensor(next_obs, dtype=torch.float)
                 obs = next_obs
 
-                rewards.append(reward)
+                rewards.append(reward[intention_idx])
 
             R[intention_idx] = np.mean(rewards)
 
         self.logger.log_rewards(R)
-
-

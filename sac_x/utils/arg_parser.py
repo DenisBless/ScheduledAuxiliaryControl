@@ -30,11 +30,13 @@ class ArgParser(ArgumentParser):
                           help='Number of trajectories sampled before entering the learning phase.')
         self.add_argument('--schedule_switch', type=int, default=180,
                           help='Number of time steps after the scheduler samples a new intention.')
+        self.add_argument('--discount_factor', type=float, default=0.99,
+                          help='Discount factor for future rewards.')
 
         # Environment arguments
         self.add_argument('--num_actions', type=int, default=4,
                           help='Dimension of the action space.')
-        self.add_argument('--num_observations', type=int, default=43,
+        self.add_argument('--num_observations', type=int, default=29,
                           help='Dimension of the observation space.')
         self.add_argument('--num_intentions', type=int, default=14,
                           help='Number of intentions (auxiliary tasks + external tasks).')

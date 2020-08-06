@@ -14,7 +14,7 @@ class ReplayBuffer(object):
         self.action_memory = torch.zeros([capacity, trajectory_length, num_actions], dtype=torch.float32)
         self.reward_memory = torch.zeros([capacity, trajectory_length, num_intentions], dtype=torch.float32)
         self.log_prob_memory = torch.zeros([capacity, trajectory_length], dtype=torch.float32)
-        self.intentions_memory = torch.zeros([capacity, trajectory_length, 2], dtype=torch.float32)
+        self.intentions_memory = torch.zeros([capacity, 2], dtype=torch.float32)
 
         self.position = torch.tensor(0)
         self.full = torch.tensor(0)
@@ -33,6 +33,7 @@ class ReplayBuffer(object):
         self.action_memory[self.position] = actions
         self.reward_memory[self.position] = rewards
         self.log_prob_memory[self.position] = log_probs
+        self.intentions_memory[self.position] = schedule_decisions
 
         self.position += 1
 

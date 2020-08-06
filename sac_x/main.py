@@ -1,8 +1,10 @@
+import time
 import pathlib
 import torch.multiprocessing as mp
 
 from sac_x.utils.arg_parser import ArgParser
 from sac_x.utils.logger import Logger
+from sac_x.utils.model_saver import ModelSaver
 from sac_x.sampler import Sampler
 from sac_x.learner import Learner
 from sac_x.evaluator import Evaluator
@@ -14,16 +16,17 @@ from sac_x.actor_critic_nets import Actor, Critic
 from simulation.src.gym_sf.mujoco.mujoco_envs.stack_env.stack_env import StackEnv
 
 arg_parser = ArgParser()
-MODEL_DIR = str(pathlib.Path(__file__).resolve().parents[1]) + "/models/"
 
 
 class Agent:
     def __init__(self, param_server, replay_buffer, scheduler, parser_args):
         self.process_id = mp.current_process()._identity[0]  # process ID
+
+        self.model_saver = ModelSaver() if self.process_id == 1 else None
         logger = Logger() if self.process_id == 1 else None
 
         with param_server.worker_cv:
-            env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.015, dt=1e-2)
+            env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.012, dt=1e-2)
 
         actor = Actor(parser_args=parser_args)
         critic = Critic(parser_args=parser_args)
@@ -38,11 +41,20 @@ class Agent:
         self.num_runs = parser_args.num_runs
 
     def run(self):
-        for _ in range(self.num_runs):
-            self.sampler.run()
-            self.learner.run()
+        for i in range(self.num_runs):
             if self.process_id == 1:
+                t1 = time.time()
+                self.sampler.run()
+                t2 = time.time()
+                print("Sampling Nr.", i + 1, " finished. Time taken: ", t2 - t1)
+                self.learner.run()
+                print("Learning Nr.", i + 1, " finished. Time taken: ", time.time() - t1)
                 self.evaluator.run()
+                self.model_saver.save_model(self.learner.parameter_server.shared_actor, 'actor')
+
+            else:
+                self.sampler.run()
+                self.learner.run()
 
 
 def work(param_server, replay_buffer, scheduler, parser_args):
