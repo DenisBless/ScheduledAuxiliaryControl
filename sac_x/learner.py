@@ -133,6 +133,8 @@ class Learner:
                 self.logger.add_scalar(tag='Loss/Critic', scalar_value=critic_loss)
                 self.logger.add_scalar(tag='Loss/Actor', scalar_value=actor_loss)
                 self.logger.log_Q_values(current_Q)
+                self.logger.log_std(current_log_std.exp())
+                self.logger.log_schedule_decisions(schedule_decisions)
 
         self.actor.copy_params(self.parameter_server.shared_actor)
         self.critic.copy_params(self.parameter_server.shared_critic)

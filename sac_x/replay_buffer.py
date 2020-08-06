@@ -26,7 +26,7 @@ class ReplayBuffer(object):
             idx = random.sample(range(self.capacity), 1)
         return [self.state_memory[idx].squeeze(dim=0), self.action_memory[idx].squeeze(dim=0),
                 self.reward_memory[idx].squeeze(dim=0), self.log_prob_memory[idx].squeeze(dim=0),
-                self.intentions_memory.squeeze(dim=0)]
+                self.intentions_memory[idx].squeeze(dim=0)]
 
     def push(self, states, actions, rewards, log_probs, schedule_decisions) -> None:
         self.state_memory[self.position] = states

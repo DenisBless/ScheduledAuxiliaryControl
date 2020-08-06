@@ -1,5 +1,4 @@
 import time
-import pathlib
 import torch.multiprocessing as mp
 
 from sac_x.utils.arg_parser import ArgParser
