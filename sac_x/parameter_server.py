@@ -34,10 +34,10 @@ class ParameterServer:
         self.worker_cv = worker_cv
         self.server_cv = server_cv
 
-        self.shared_actor = Actor(parser_args=parser_args)
+        self.shared_actor = Actor(parser_args=parser_args).to('cuda:0')
         self.shared_actor.share_memory()
 
-        self.shared_critic = Critic(parser_args=parser_args)
+        self.shared_critic = Critic(parser_args=parser_args).to('cuda:0')
         self.shared_critic.share_memory()
 
         self.actor_grads, self.critic_grads = self.init_grad()

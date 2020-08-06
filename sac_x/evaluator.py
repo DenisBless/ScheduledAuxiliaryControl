@@ -29,14 +29,16 @@ class Evaluator:
         # S = torch.zeros([self.num_intentions, self.trajectory_length, self.num_observations])
         for intention_idx in range(self.num_intentions):
             rewards = []
-            obs = torch.tensor(self.env.reset(), dtype=torch.float)
+            obs = torch.tensor(self.env.reset(), dtype=torch.float).to('cuda:0')
             for t in range(self.trajectory_length):
                 mean, log_std = self.actor(obs, intention_idx)
+                mean = mean.to('cuda:0')
+                log_std = log_std.to('cuda:0')
                 action, action_log_pr = self.actor.action_sample(mean, torch.ones_like(mean) * -1e10)
                 denormalized_action = action.detach().cpu().numpy() * self.env.action_space.high
                 assert self.env.action_space.low.all() <= denormalized_action.all() <= self.env.action_space.high.all()
                 next_obs, reward, done, _ = self.env.step(denormalized_action)
-                next_obs = torch.tensor(next_obs, dtype=torch.float)
+                next_obs = torch.tensor(next_obs, dtype=torch.float).to('cuda:0')
                 obs = next_obs
 
                 rewards.append(reward[intention_idx])

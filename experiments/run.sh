@@ -1,5 +1,5 @@
 python3 -O ../sac_x/main.py \
---num_worker=6 \
+--num_worker=5 \
 --num_grads=6 \
 --update_targnets_every=300 \
 --learning_steps=1200 \

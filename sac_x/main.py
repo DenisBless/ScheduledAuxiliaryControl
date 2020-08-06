@@ -1,4 +1,5 @@
 import time
+import torch
 import torch.multiprocessing as mp
 
 from sac_x.utils.arg_parser import ArgParser
@@ -27,8 +28,8 @@ class Agent:
         with param_server.worker_cv:
             env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.012, dt=1e-2)
 
-        actor = Actor(parser_args=parser_args)
-        critic = Critic(parser_args=parser_args)
+        actor = Actor(parser_args=parser_args).to('cuda:0')
+        critic = Critic(parser_args=parser_args).to('cuda:0')
 
         self.sampler = Sampler(env=env, actor=actor, replay_buffer=replay_buffer, scheduler=scheduler,
                                argp=parser_args, logger=logger)
@@ -69,6 +70,9 @@ def run_server(param_server):
 
 
 if __name__ == '__main__':
+
+    torch.multiprocessing.set_start_method('spawn')
+
     lock = mp.Lock()
     worker_cv = mp.Condition(lock)
     server_cv = mp.Condition(lock)

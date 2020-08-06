@@ -139,7 +139,7 @@ class Actor(Base):
             mean = self.intention_nets[intention_idx](x)[:self.num_actions]
             log_std = self.intention_nets[intention_idx](x)[self.num_actions:]
 
-        return mean, log_std
+        return mean, log_std.clamp(max=1e-6)
 
     def action_sample(self, mean: torch.Tensor, log_std: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
