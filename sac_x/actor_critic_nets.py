@@ -105,6 +105,8 @@ class Actor(Base):
         self.num_intentions = parser_args.num_intentions
         self.num_actions = parser_args.num_actions
         self.eps = eps
+        self.upper_log_std_bound = np.log(2)
+
         self.logger = logger
 
         self.episode_length = parser_args.episode_length
@@ -113,7 +115,7 @@ class Actor(Base):
         self.intention_nets = nn.ModuleList()
         for _ in range(self.num_intentions):
             # Create a model for a intention net
-            intention_modules = [nn.Linear(base_layer_dims[-1], intention_layer_dims[0])]
+            intention_modules = [nn.Linear(base_layer_dims[-1], intention_layer_dims[0]), non_linearity]
             for i in range(len(intention_layer_dims) - 1):
                 intention_modules.append(nn.Linear(intention_layer_dims[i], intention_layer_dims[i + 1]))
                 intention_modules.append(non_linearity)
@@ -139,7 +141,7 @@ class Actor(Base):
             mean = self.intention_nets[intention_idx](x)[:self.num_actions]
             log_std = self.intention_nets[intention_idx](x)[self.num_actions:]
 
-        return mean, log_std
+        return mean, log_std.clamp(max=self.upper_log_std_bound)
 
     def action_sample(self, mean: torch.Tensor, log_std: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -250,7 +252,7 @@ class Critic(Base):
         self.intention_nets = nn.ModuleList()
         for _ in range(self.num_intentions):
             # Create a model for a intention net
-            intention_modules = [nn.Linear(base_layer_dims[-1], intention_layer_dims[0])]
+            intention_modules = [nn.Linear(base_layer_dims[-1], intention_layer_dims[0]), non_linearity]
             for i in range(len(intention_layer_dims) - 1):
                 intention_modules.append(nn.Linear(intention_layer_dims[i], intention_layer_dims[i + 1]))
                 intention_modules.append(non_linearity)

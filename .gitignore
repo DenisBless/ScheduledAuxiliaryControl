@@ -1,8 +1,9 @@
 /sac
 /tests.ipynb
 /sac_x/runs/
+/sac_x/runsOLD/
 /models
-/experiments/runs/
+/experiments/runsOLD/
 /*.pyc
 *.pyc
 todos.py

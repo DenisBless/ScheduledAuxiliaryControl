@@ -25,7 +25,8 @@ class Agent:
         logger = Logger() if self.process_id == 1 else None
 
         with param_server.worker_cv:
-            env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.012, dt=1e-2)
+            env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.02, dt=1e-2,
+                           render=False)
 
         actor = Actor(parser_args=parser_args)
         critic = Critic(parser_args=parser_args)
@@ -66,6 +67,12 @@ def work(param_server, replay_buffer, scheduler, parser_args):
 
 def run_server(param_server):
     param_server.run()
+
+def sample(replay_buffer, parser_args):
+    ...
+
+def learn(param_server, replay_buffer, scheduler, parser_args):
+    ...
 
 
 if __name__ == '__main__':
