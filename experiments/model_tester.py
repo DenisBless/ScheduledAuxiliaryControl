@@ -27,6 +27,13 @@ class ModelTester:
     def run(self) -> None:
         while True:
             intention = int(input("Select Intention: \n => "))
+            """
+            0 - close
+            1 - reach cuboid
+            2 - reach cubic
+            3 - move cuboid
+            4 - move cubic
+            """
             assert 0 <= intention <= self.num_intentions, "Error, invalid intention index."
 
             for _ in range(3):
@@ -45,7 +52,7 @@ class ModelTester:
 
 if __name__ == '__main__':
     INTENTION_IDX = 0
-    PATH_TO_MODEL = str(pathlib.Path(__file__).resolve().parents[1]) + "/models/" + "11-08_21-40/actor_250"
+    PATH_TO_MODEL = "actor_250"
 
     parser_args = arg_parser.parse_args()
     actor = Actor(parser_args=parser_args)
