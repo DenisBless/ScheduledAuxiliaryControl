@@ -68,11 +68,36 @@ def work(param_server, replay_buffer, scheduler, parser_args):
 def run_server(param_server):
     param_server.run()
 
-def sample(replay_buffer, parser_args):
-    ...
+
+def sample(param_server, replay_buffer, scheduler, parser_args):
+    # Initialize environment
+    with param_server.worker_cv:
+        env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.02, dt=1e-2)
+
+    actor = Actor(parser_args=parser_args)
+    sampler = Sampler(env=env, actor=actor, replay_buffer=replay_buffer, scheduler=scheduler, argp=parser_args)
+
+    while True:  # Sample until learners are finished
+        sampler.run()
+
 
 def learn(param_server, replay_buffer, scheduler, parser_args):
-    ...
+    process_id = mp.current_process()._identity[0]  # process ID
+
+    model_saver = ModelSaver() if process_id == 1 else None
+    logger = Logger() if process_id == 1 else None
+
+    actor = Actor(parser_args=parser_args)
+    critic = Critic(parser_args=parser_args)
+
+    learner = Learner(actor=actor, critic=critic, parameter_server=param_server,
+                      replay_buffer=replay_buffer, parser_args=parser_args, logger=logger)
+
+    for i in range(parser_args.num_runs):
+        learner.run()
+        model_saver.save_model(param_server.shared_actor, 'actor')
+
+    exit()
 
 
 if __name__ == '__main__':

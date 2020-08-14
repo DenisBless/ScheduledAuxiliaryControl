@@ -13,8 +13,7 @@ class Sampler:
                  actor: torch.nn.Module,
                  replay_buffer: SharedReplayBuffer,
                  scheduler: Scheduler,
-                 argp,
-                 logger: SummaryWriter = None):
+                 argp):
 
         self.env = env
         self.actor = actor
@@ -28,12 +27,6 @@ class Sampler:
         self.discounts = torch.cumprod(torch.ones([self.trajectory_length - 1]) * 0.99, dim=-1)
 
         self.log_every = 10
-
-        self.logger = logger
-        if argp.num_workers > 1:
-            self.process_id = current_process()._identity[0]  # process ID
-        else:
-            self.process_id = 1
 
     def run(self) -> None:
         for i in range(self.num_trajectories):
