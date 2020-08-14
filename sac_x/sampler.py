@@ -3,6 +3,7 @@ import torch
 from torch.multiprocessing import current_process
 from torch.utils.tensorboard import SummaryWriter
 
+from sac_x.parameter_server import ParameterServer
 from sac_x.replay_buffer import SharedReplayBuffer
 from sac_x.scheduler import Scheduler
 
@@ -12,12 +13,14 @@ class Sampler:
                  env,
                  actor: torch.nn.Module,
                  replay_buffer: SharedReplayBuffer,
+                 parameter_server: ParameterServer,
                  scheduler: Scheduler,
                  argp):
 
         self.env = env
         self.actor = actor
         self.replay_buffer = replay_buffer
+        self.parameter_server = parameter_server
         self.scheduler = scheduler
         self.num_trajectories = argp.num_trajectories
         self.trajectory_length = argp.episode_length
@@ -29,7 +32,11 @@ class Sampler:
         self.log_every = 10
 
     def run(self) -> None:
-        for i in range(self.num_trajectories):
+        ctr = 0
+        while True:
+            if ctr % self.num_trajectories == 0:
+                self.actor.copy_params(self.parameter_server.shared_actor)
+
             states, actions, rewards, action_log_prs, schedule_decisions = [], [], [], [], []
             h = 0
             intention_idx = None

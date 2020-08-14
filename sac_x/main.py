@@ -1,4 +1,5 @@
 import time
+import sys
 import torch.multiprocessing as mp
 
 from sac_x.utils.arg_parser import ArgParser
@@ -16,53 +17,53 @@ from simulation.src.gym_sf.mujoco.mujoco_envs.stack_env.stack_env import StackEn
 
 arg_parser = ArgParser()
 
-
-class Agent:
-    def __init__(self, param_server, replay_buffer, scheduler, parser_args):
-        self.process_id = mp.current_process()._identity[0]  # process ID
-
-        self.model_saver = ModelSaver() if self.process_id == 1 else None
-        logger = Logger() if self.process_id == 1 else None
-
-        with param_server.worker_cv:
-            env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.02, dt=1e-2,
-                           render=False)
-
-        actor = Actor(parser_args=parser_args)
-        critic = Critic(parser_args=parser_args)
-
-        self.sampler = Sampler(env=env, actor=actor, replay_buffer=replay_buffer, scheduler=scheduler,
-                               argp=parser_args, logger=logger)
-        self.learner = Learner(actor=actor, critic=critic, parameter_server=param_server,
-                               replay_buffer=replay_buffer, parser_args=parser_args, logger=logger)
-
-        self.evaluator = Evaluator(env=env, actor=actor, critic=critic, parser_args=parser_args, logger=logger)
-
-        self.num_runs = parser_args.num_runs
-
-    def run(self):
-        for i in range(self.num_runs):
-            if self.process_id == 1:
-                t1 = time.time()
-                self.sampler.run()
-                t2 = time.time()
-                print("Sampling Nr.", i + 1, " finished. Time taken: ", t2 - t1)
-                self.learner.run()
-                print("Learning Nr.", i + 1, " finished. Time taken: ", time.time() - t1)
-                self.evaluator.run()
-                self.model_saver.save_model(self.learner.parameter_server.shared_actor, 'actor')
-
-            else:
-                self.sampler.run()
-                self.learner.run()
-
-
-def work(param_server, replay_buffer, scheduler, parser_args):
-    worker = Agent(param_server=param_server,
-                   replay_buffer=replay_buffer,
-                   scheduler=scheduler,
-                   parser_args=parser_args)
-    worker.run()
+#
+# class Agent:
+#     def __init__(self, param_server, replay_buffer, scheduler, parser_args):
+#         self.process_id = mp.current_process()._identity[0]  # process ID
+#
+#         self.model_saver = ModelSaver() if self.process_id == 1 else None
+#         logger = Logger() if self.process_id == 1 else None
+#
+#         with param_server.worker_cv:
+#             env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.02, dt=1e-2,
+#                            render=False)
+#
+#         actor = Actor(parser_args=parser_args)
+#         critic = Critic(parser_args=parser_args)
+#
+#         self.sampler = Sampler(env=env, actor=actor, replay_buffer=replay_buffer, scheduler=scheduler,
+#                                argp=parser_args, logger=logger)
+#         self.learner = Learner(actor=actor, critic=critic, parameter_server=param_server,
+#                                replay_buffer=replay_buffer, parser_args=parser_args, logger=logger)
+#
+#         self.evaluator = Evaluator(env=env, actor=actor, critic=critic, parser_args=parser_args, logger=logger)
+#
+#         self.num_runs = parser_args.num_runs
+#
+#     def run(self):
+#         for i in range(self.num_runs):
+#             if self.process_id == 1:
+#                 t1 = time.time()
+#                 self.sampler.run()
+#                 t2 = time.time()
+#                 print("Sampling Nr.", i + 1, " finished. Time taken: ", t2 - t1)
+#                 self.learner.run()
+#                 print("Learning Nr.", i + 1, " finished. Time taken: ", time.time() - t1)
+#                 self.evaluator.run()
+#                 self.model_saver.save_model(self.learner.parameter_server.shared_actor, 'actor')
+#
+#             else:
+#                 self.sampler.run()
+#                 self.learner.run()
+#
+#
+# def work(param_server, replay_buffer, scheduler, parser_args):
+#     worker = Agent(param_server=param_server,
+#                    replay_buffer=replay_buffer,
+#                    scheduler=scheduler,
+#                    parser_args=parser_args)
+#     worker.run()
 
 
 def run_server(param_server):
@@ -77,8 +78,7 @@ def sample(param_server, replay_buffer, scheduler, parser_args):
     actor = Actor(parser_args=parser_args)
     sampler = Sampler(env=env, actor=actor, replay_buffer=replay_buffer, scheduler=scheduler, argp=parser_args)
 
-    while True:  # Sample until learners are finished
-        sampler.run()
+    sampler.run()
 
 
 def learn(param_server, replay_buffer, scheduler, parser_args):
@@ -94,8 +94,8 @@ def learn(param_server, replay_buffer, scheduler, parser_args):
                       replay_buffer=replay_buffer, parser_args=parser_args, logger=logger)
 
     for i in range(parser_args.num_runs):
+        print(i)
         learner.run()
-        model_saver.save_model(param_server.shared_actor, 'actor')
 
     exit()
 
@@ -115,18 +115,21 @@ if __name__ == '__main__':
 
     shared_scheduler = SacU(parser_args=p_args)
 
-    if p_args.num_workers > 1:
-        processes = [mp.Process(target=work, args=(shared_param_server, shared_replay_buffer, shared_scheduler, p_args))
-                     for _ in range(p_args.num_workers)]
+    sampler = [mp.Process(target=sample, args=(shared_param_server, shared_replay_buffer, shared_scheduler, p_args))
+               for _ in range(2)]
 
-        # Add a process for the  parameter server
-        processes.append(mp.Process(target=run_server, args=(shared_param_server,)))
+    learner = [mp.Process(target=learn, args=(shared_param_server, shared_replay_buffer, shared_scheduler, p_args))
+               for _ in range(2)]
 
-        for p in processes:
-            p.start()
+    param_server = mp.Process(target=run_server, args=(shared_param_server,))
 
-        for p in processes:
-            p.join()
+    for spr in sampler:
+        spr.start()
 
-    else:
-        raise ValueError("Error, the number of workers has to be > 1.")
+    while len(shared_replay_buffer) < 50:
+        time.sleep(5)
+
+    for lnr in learner:
+        lnr.start()
+
+    param_server.start()  # no need to join since the learner terminates the program

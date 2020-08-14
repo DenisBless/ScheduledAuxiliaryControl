@@ -70,7 +70,7 @@ class Learner:
         self.critic.train()
 
         for i in range(self.learning_steps):
-
+            print(i)
             # Update the target networks
             if i % self.update_targnets_every == 0:
                 self.update_targnets()
