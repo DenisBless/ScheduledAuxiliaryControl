@@ -26,7 +26,7 @@ class ArgParser(ArgumentParser):
                           help='Scaling of entropy term in the actor loss function')
         self.add_argument('--replay_buffer_size', type=int, default=300,
                           help='Size of the replay buffer.')
-        self.add_argument('--num_trajectories', type=int, default=2,
+        self.add_argument('--num_trajectories', type=int, default=10,
                           help='Number of trajectories sampled before entering the learning phase.')
         self.add_argument('--schedule_switch', type=int, default=180,
                           help='Number of time steps after the scheduler samples a new intention.')
@@ -36,9 +36,9 @@ class ArgParser(ArgumentParser):
         # Environment arguments
         self.add_argument('--num_actions', type=int, default=4,
                           help='Dimension of the action space.')
-        self.add_argument('--num_observations', type=int, default=29,
+        self.add_argument('--num_observations', type=int, default=26,
                           help='Dimension of the observation space.')
-        self.add_argument('--num_intentions', type=int, default=14,
+        self.add_argument('--num_intentions', type=int, default=10,
                           help='Number of intentions (auxiliary tasks + external tasks).')
         self.add_argument('--episode_length', type=int, default=360,
                           help='Number of steps the agent interacts with the environment.')

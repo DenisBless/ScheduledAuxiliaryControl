@@ -1,4 +1,4 @@
-python3 -O ../sac_x/main.py \
+python3 ../sac_x/main.py \
 --num_worker=6 \
 --num_grads=6 \
 --update_targnets_every=300 \
@@ -9,5 +9,5 @@ python3 -O ../sac_x/main.py \
 --entropy_reg=1e-3 \
 --replay_buffer_size=2000 \
 --num_trajectories=20  \
---num_intentions=14 \
+--num_intentions=10 \
 --num_observations=26

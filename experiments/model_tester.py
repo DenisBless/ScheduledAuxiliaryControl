@@ -45,12 +45,12 @@ class ModelTester:
 
 if __name__ == '__main__':
     INTENTION_IDX = 0
-    PATH_TO_MODEL = str(pathlib.Path(__file__).resolve().parents[1]) + "/models/" + "11-08_21-40/actor_250"
+    PATH_TO_MODEL = str(pathlib.Path(__file__).resolve().parents[1]) + "/models/" + "office/actor_1420"
 
     parser_args = arg_parser.parse_args()
-    actor = Actor(parser_args=parser_args)
-    actor.load_state_dict(torch.load(PATH_TO_MODEL))
-
+    # actor = Actor(parser_args=parser_args)
+    # actor.load_state_dict(torch.load(PATH_TO_MODEL, map_location=torch.device('cpu')))
+    actor = torch.load(PATH_TO_MODEL, map_location=torch.device('cpu'))
     env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.012, dt=1e-2, render=True)
     model_tester = ModelTester(env=env, actor=actor, intention_idx=INTENTION_IDX, parser_args=parser_args)
 
