@@ -25,7 +25,7 @@ class Agent:
         logger = Logger() if self.process_id == 1 else None
 
         with param_server.worker_cv:
-            env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.01, dt=1e-2,
+            env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.015, dt=1e-2,
                            render=False)
 
         actor = Actor(parser_args=parser_args)
