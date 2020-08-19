@@ -1,4 +1,4 @@
-python3 ../sac_x/main.py \
+python3 -O ../sac_x/main.py \
 --num_worker=6 \
 --num_grads=6 \
 --update_targnets_every=300 \
@@ -6,7 +6,7 @@ python3 ../sac_x/main.py \
 --actor_lr=2e-4 \
 --critic_lr=2e-4 \
 --global_gradient_norm=0.5 \
---entropy_reg=1e-3 \
+--entropy_reg=1e-2 \
 --replay_buffer_size=2000 \
 --num_trajectories=20  \
 --num_intentions=10 \
