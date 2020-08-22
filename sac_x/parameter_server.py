@@ -116,11 +116,13 @@ class ParameterServer:
             a.zero_()
             c.zero_()
 
+    # For test purposes
     def get_grad_norm(self) -> Union[float, float]:
         ag_norm = reduce(lambda x, y: torch.norm(x) + torch.norm(y), self.actor_grads).item()
         cg_norm = reduce(lambda x, y: torch.norm(x) + torch.norm(y), self.critic_grads).item()
         return [ag_norm, cg_norm]
 
+    # For test purposes
     def get_param_norm(self) -> Union[float, float]:
         ap_norm = reduce(lambda x, y: torch.norm(x) + torch.norm(y), list(self.shared_actor.parameters())).item()
         cp_norm = reduce(lambda x, y: torch.norm(x) + torch.norm(y), list(self.shared_critic.parameters())).item()

@@ -38,9 +38,6 @@ class Learner:
         self.actor_loss = ActorLoss(alpha=parser_args.entropy_reg, num_intentions=parser_args.num_intentions)
         self.critic_loss = Retrace(num_actions=self.num_actions, num_intentions=parser_args.num_intentions)
 
-        self.actor_opt = torch.optim.Adam(self.actor.parameters(), parser_args.actor_lr)
-        self.critic_opt = torch.optim.Adam(self.critic.parameters(), parser_args.critic_lr)
-
         self.update_targnets_every = parser_args.update_targnets_every
         self.learning_steps = parser_args.learning_steps
         self.global_gradient_norm = parser_args.global_gradient_norm
@@ -132,6 +129,7 @@ class Learner:
             if (self.logger is not None) and (i % self.log_every == 0):
                 self.logger.add_scalar(tag='Loss/Critic', scalar_value=critic_loss)
                 self.logger.add_scalar(tag='Loss/Actor', scalar_value=actor_loss)
+                self.logger.log_rewards(rewards, mode='Train')
                 # self.logger.log_Q_values(current_Q)
                 # self.logger.log_std(current_log_std.exp())
                 # self.logger.log_schedule_decisions(schedule_decisions)

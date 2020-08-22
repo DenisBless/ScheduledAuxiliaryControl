@@ -26,7 +26,7 @@ class Agent:
 
         with param_server.worker_cv:
             env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.015, dt=1e-2,
-                           render=False)
+                           render=0)
 
         actor = Actor(parser_args=parser_args)
         critic = Critic(parser_args=parser_args)

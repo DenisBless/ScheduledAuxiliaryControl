@@ -36,7 +36,7 @@ class ArgParser(ArgumentParser):
         # Environment arguments
         self.add_argument('--num_actions', type=int, default=4,
                           help='Dimension of the action space.')
-        self.add_argument('--num_observations', type=int, default=26,
+        self.add_argument('--num_observations', type=int, default=34,
                           help='Dimension of the observation space.')
         self.add_argument('--num_intentions', type=int, default=10,
                           help='Number of intentions (auxiliary tasks + external tasks).')
