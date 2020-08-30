@@ -15,6 +15,7 @@ class Base(nn.Module):
         base_modules = []
         for i in range(len(base_layer_dims) - 1):
             base_modules.append(torch.nn.Linear(base_layer_dims[i], base_layer_dims[i + 1]))
+            # base_modules.append(nn.LayerNorm(base_layer_dims[i + 1]))
             base_modules.append(non_linearity)
 
         self.base_model = nn.Sequential(*base_modules)
@@ -106,6 +107,8 @@ class Actor(Base):
         self.num_actions = parser_args.num_actions
         self.eps = eps
         self.logger = logger
+        self.upper_log_std_bound = torch.log(torch.tensor(2, dtype=torch.float32))
+        self.lower_log_std_bound = torch.log(torch.tensor(1e-3, dtype=torch.float32))
 
         self.episode_length = parser_args.episode_length
 
@@ -113,7 +116,7 @@ class Actor(Base):
         self.intention_nets = nn.ModuleList()
         for _ in range(self.num_intentions):
             # Create a model for a intention net
-            intention_modules = [nn.Linear(base_layer_dims[-1], intention_layer_dims[0])]
+            intention_modules = [nn.Linear(base_layer_dims[-1], intention_layer_dims[0]), non_linearity]
             for i in range(len(intention_layer_dims) - 1):
                 intention_modules.append(nn.Linear(intention_layer_dims[i], intention_layer_dims[i + 1]))
                 intention_modules.append(non_linearity)
@@ -127,19 +130,31 @@ class Actor(Base):
     def predict(self, x, intention_idx=None):
         # assert (0 <= intention_idx < self.num_intentions) or (intention_idx is None)
 
-        x = self.base_model(x)
+        assert not torch.isnan(x).any(), print("x1", x)
+        n = torch.norm(torch.stack([torch.norm(p.detach()) for p in self.base_model.parameters()])).item()
+
+        x2 = self.base_model(x)
+
+        assert not torch.isnan(x2).any(), print("x2", x2,
+                                                "max", torch.max(x),
+                                                "argmax", torch.argmax(x),
+                                                "min", torch.min(x),
+                                                "argmin", torch.argmin(x),
+                                                "norm", n)
 
         if intention_idx is None:
             mean = torch.zeros([self.num_intentions, self.episode_length, self.num_actions])
             log_std = torch.zeros([self.num_intentions, self.episode_length, self.num_actions])
             for i in range(self.num_intentions):
-                mean[i, :, :] = self.intention_nets[i](x)[:, :self.num_actions]
-                log_std[i, :, :] = self.intention_nets[i](x)[:, self.num_actions:]
+                mean[i, :, :] = self.intention_nets[i](x2)[:, :self.num_actions]
+                log_std[i, :, :] = self.intention_nets[i](x2)[:, self.num_actions:]
         else:
-            mean = self.intention_nets[intention_idx](x)[:self.num_actions]
-            log_std = self.intention_nets[intention_idx](x)[self.num_actions:]
+            mean = self.intention_nets[intention_idx](x2)[:self.num_actions]
+            log_std = self.intention_nets[intention_idx](x2)[self.num_actions:]
 
-        return mean, log_std.clamp(max=1e-6)
+        assert not torch.isnan(log_std).any(), print("in forward", log_std)
+
+        return mean, log_std.clamp(min=self.lower_log_std_bound, max=self.upper_log_std_bound)
 
     def action_sample(self, mean: torch.Tensor, log_std: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -187,7 +202,13 @@ class Actor(Base):
 
         normal_log_probs = self.normal_dist(mean, log_std).log_prob(normal_actions)
         log_probs = torch.sum(normal_log_probs, dim=-1) - torch.sum(torch.log(1 - actions.pow(2) + self.eps), dim=-1)
-        assert not torch.isnan(log_probs).any()
+
+        assert not torch.isnan(torch.sum(normal_actions, dim=-1)).any(), print(torch.sum(normal_actions, dim=-1))
+        assert not torch.isnan(torch.sum(actions, dim=-1)).any(), print(torch.sum(actions, dim=-1))
+        assert not torch.isnan(torch.sum(normal_log_probs, dim=-1)).any(), print(torch.sum(normal_log_probs, dim=-1))
+        assert not torch.isnan(torch.sum(torch.log(1 - actions.pow(2) + self.eps), dim=-1)).any(), print(
+            torch.sum(torch.log(1 - actions.pow(2) + self.eps), dim=-1))
+        assert not torch.isnan(log_probs).any(), print(log_probs)
         return log_probs
 
     @staticmethod
@@ -202,6 +223,9 @@ class Actor(Base):
         Returns:
             N(u|μ(s), σ(s))
         """
+        assert not torch.isnan(log_std).any(), print(log_std)
+        assert not torch.isnan(mean).any(), print(mean)
+
         return Normal(loc=mean, scale=log_std.exp())
 
     def inverseTanh(self, action: torch.Tensor) -> torch.Tensor:
@@ -250,7 +274,7 @@ class Critic(Base):
         self.intention_nets = nn.ModuleList()
         for _ in range(self.num_intentions):
             # Create a model for a intention net
-            intention_modules = [nn.Linear(base_layer_dims[-1], intention_layer_dims[0])]
+            intention_modules = [nn.Linear(base_layer_dims[-1], intention_layer_dims[0]), non_linearity]
             for i in range(len(intention_layer_dims) - 1):
                 intention_modules.append(nn.Linear(intention_layer_dims[i], intention_layer_dims[i + 1]))
                 intention_modules.append(non_linearity)

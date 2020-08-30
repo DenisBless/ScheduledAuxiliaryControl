@@ -14,7 +14,7 @@ class ArgParser(ArgumentParser):
                           help='Number of learning steps before the target networks are updated.')
         self.add_argument('--learning_steps', type=int, default=20,
                           help='Total number of learning timesteps before sampling trajectories.')
-        self.add_argument('--num_runs', type=int, default=5000,
+        self.add_argument('--num_runs', type=int, default=50000,
                           help='Number of learning iterations.')
         self.add_argument('--actor_lr', type=float, default=2e-4,
                           help='Learning rate for the actor network.')
@@ -36,9 +36,9 @@ class ArgParser(ArgumentParser):
         # Environment arguments
         self.add_argument('--num_actions', type=int, default=4,
                           help='Dimension of the action space.')
-        self.add_argument('--num_observations', type=int, default=29,
+        self.add_argument('--num_observations', type=int, default=34,
                           help='Dimension of the observation space.')
-        self.add_argument('--num_intentions', type=int, default=14,
+        self.add_argument('--num_intentions', type=int, default=10,
                           help='Number of intentions (auxiliary tasks + external tasks).')
         self.add_argument('--episode_length', type=int, default=360,
                           help='Number of steps the agent interacts with the environment.')

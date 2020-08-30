@@ -3,6 +3,7 @@
 /sac_x/runs/
 /models
 /experiments/runs/
+/experiments/old_runs/
 /*.pyc
 *.pyc
 todos.py

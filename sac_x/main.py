@@ -26,10 +26,10 @@ class Agent:
         logger = Logger() if self.process_id == 1 else None
 
         with param_server.worker_cv:
-            env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.012, dt=1e-2)
+            env = StackEnv(max_steps=parser_args.episode_length, control_timesteps=5, percentage=0.015, dt=1e-2, render=False)
 
-        actor = Actor(parser_args=parser_args).to('cuda:0')
-        critic = Critic(parser_args=parser_args).to('cuda:0')
+        actor = Actor(parser_args=parser_args)#.to('cuda:0')
+        critic = Critic(parser_args=parser_args)#.to('cuda:0')
 
         self.sampler = Sampler(env=env, actor=actor, replay_buffer=replay_buffer, scheduler=scheduler,
                                argp=parser_args, logger=logger)

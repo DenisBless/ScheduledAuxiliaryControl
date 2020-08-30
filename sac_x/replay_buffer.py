@@ -10,11 +10,11 @@ class ReplayBuffer(object):
         self.num_actions = num_actions
         self.num_obs = num_obs
 
-        self.state_memory = torch.zeros([capacity, trajectory_length, num_obs], dtype=torch.float32).to('cuda:0')
-        self.action_memory = torch.zeros([capacity, trajectory_length, num_actions], dtype=torch.float32).to('cuda:0')
-        self.reward_memory = torch.zeros([capacity, trajectory_length, num_intentions], dtype=torch.float32).to('cuda:0')
-        self.log_prob_memory = torch.zeros([capacity, trajectory_length], dtype=torch.float32).to('cuda:0')
-        self.intentions_memory = torch.zeros([capacity, 2], dtype=torch.float32).to('cuda:0')
+        self.state_memory = torch.zeros([capacity, trajectory_length, num_obs], dtype=torch.float32)#.to('cuda:0')
+        self.action_memory = torch.zeros([capacity, trajectory_length, num_actions], dtype=torch.float32)#.to('cuda:0')
+        self.reward_memory = torch.zeros([capacity, trajectory_length, num_intentions], dtype=torch.float32)#.to('cuda:0')
+        self.log_prob_memory = torch.zeros([capacity, trajectory_length], dtype=torch.float32)#.to('cuda:0')
+        self.intentions_memory = torch.zeros([capacity, 2], dtype=torch.float32)#.to('cuda:0')
 
         self.position = torch.tensor(0)
         self.full = torch.tensor(0)

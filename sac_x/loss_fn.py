@@ -66,7 +66,8 @@ class Retrace:
             # ∇φ (Q - Q_ret)^2 ∝ (Q - Q_ret) * ∇φ Q
 
             c_ret = self.calc_retrace_weights(target_policy_probs, behaviour_policy_probs)
-            Q_ret = torch.zeros_like(Q, dtype=torch.float).to('cuda:0')  # (#intentions,T)
+            # Q_ret = torch.zeros_like(Q, dtype=torch.float).to('cuda:0')  # (#intentions,T)
+            Q_ret = torch.zeros_like(Q, dtype=torch.float).to('cpu')  # (#intentions,T)
 
             Q_ret[:, -1] = target_Q[:, -1]
             for t in reversed(range(1, T)):

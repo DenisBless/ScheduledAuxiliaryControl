@@ -34,10 +34,10 @@ class ParameterServer:
         self.worker_cv = worker_cv
         self.server_cv = server_cv
 
-        self.shared_actor = Actor(parser_args=parser_args).to('cuda:0')
+        self.shared_actor = Actor(parser_args=parser_args)#.to('cuda:0')
         self.shared_actor.share_memory()
 
-        self.shared_critic = Critic(parser_args=parser_args).to('cuda:0')
+        self.shared_critic = Critic(parser_args=parser_args)#.to('cuda:0')
         self.shared_critic.share_memory()
 
         self.actor_grads, self.critic_grads = self.init_grad()
@@ -73,9 +73,9 @@ class ParameterServer:
 
     def add_gradients(self, actor_grads, critic_grads) -> None:
         for shared_ag, ag in zip(self.actor_grads, actor_grads):
-            shared_ag += ag / self.G
+            shared_ag += ag.cpu() / self.G
         for shared_cg, cg in zip(self.critic_grads, critic_grads):
-            shared_cg += cg / self.G
+            shared_cg += cg.cpu() / self.G
 
     def update_params(self) -> None:
         """

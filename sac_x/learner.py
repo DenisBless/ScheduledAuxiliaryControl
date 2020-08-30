@@ -38,9 +38,6 @@ class Learner:
         self.actor_loss = ActorLoss(alpha=parser_args.entropy_reg, num_intentions=parser_args.num_intentions)
         self.critic_loss = Retrace(num_actions=self.num_actions, num_intentions=parser_args.num_intentions)
 
-        self.actor_opt = torch.optim.Adam(self.actor.parameters(), parser_args.actor_lr)
-        self.critic_opt = torch.optim.Adam(self.critic.parameters(), parser_args.critic_lr)
-
         self.update_targnets_every = parser_args.update_targnets_every
         self.learning_steps = parser_args.learning_steps
         self.global_gradient_norm = parser_args.global_gradient_norm
@@ -76,38 +73,37 @@ class Learner:
                 self.update_targnets()
 
             states, actions, rewards, behaviour_log_pr, schedule_decisions = self.replay_buffer.sample()
-            states = states.to('cuda:0')
-            actions = actions.to('cuda:0')
-            rewards = rewards.to('cuda:0')
-            behaviour_log_pr = behaviour_log_pr.to('cuda:0')
+            states = states.to('cpu')
+            actions = actions.to('cpu')
+            rewards = rewards.to('cpu')
+            behaviour_log_pr = behaviour_log_pr.to('cpu')
 
             # Q(a_t, s_t)
-            batch_Q = self.critic(actions, states).to('cuda:0')
+            batch_Q = self.critic(actions, states).to('cpu')
 
             # Q_target(a_t, s_t)
-            target_Q = self.target_critic(actions, states).to('cuda:0')
+            target_Q = self.target_critic(actions, states).to('cpu')
 
             # Compute 𝔼_π_target [Q(s_t,•)] with a ~ π_target(•|s_t), log(π_target(a|s)) with 1 sample
             mean, log_std = self.target_actor(states)
-            mean = mean.to('cuda:0')
-            log_std = log_std.to('cuda:0')
-
+            mean = mean.to('cpu')
+            log_std = log_std.to('cpu')
             action_sample, _ = self.target_actor.action_sample(mean, log_std)
-            expected_target_Q = self.target_critic(action_sample, states).to('cuda:0')
+            expected_target_Q = self.target_critic(action_sample, states).to('cpu')
 
             # log(π_target(a_t | s_t))
             target_action_log_prob = self.target_actor.get_log_prob(actions=actions, mean=mean, log_std=log_std)
-            target_action_log_prob = target_action_log_prob.to('cuda:0')
+            target_action_log_prob = target_action_log_prob.to('cpu')
 
             # a ~ π(•|s_t), log(π(a|s_t))
             current_mean, current_log_std = self.actor(states)
-            current_mean = current_mean.to('cuda:0')
-            current_log_std = current_log_std.to('cuda:0')
+            current_mean = current_mean.to('cpu')
+            current_log_std = current_log_std.to('cpu')
 
             current_actions, current_action_log_prob = self.actor.action_sample(current_mean, current_log_std)
 
             # Q(a, s_t)
-            current_Q = self.critic(current_actions, states).to('cuda:0')
+            current_Q = self.critic(current_actions, states).to('cpu')
 
             critic_loss = self.critic_loss(Q=batch_Q,
                                            expected_target_Q=expected_target_Q,
@@ -137,14 +133,37 @@ class Learner:
                     self.critic.copy_params(self.parameter_server.shared_critic)
 
                     self.grad_ctr = 0
-
             # Keep track of different values
             if (self.logger is not None) and (i % self.log_every == 0):
                 self.logger.add_scalar(tag='Loss/Critic', scalar_value=critic_loss)
                 self.logger.add_scalar(tag='Loss/Actor', scalar_value=actor_loss)
-                self.logger.log_Q_values(current_Q)
+                # self.logger.log_Q_values(current_Q)
                 self.logger.log_std(current_log_std.exp())
-                self.logger.log_schedule_decisions(schedule_decisions)
+                self.logger.log_rewards(rewards, mode="Train")
+                # self.logger.log_observations(states)
+                # self.logger.log_schedule_decisions(schedule_decisions)
+                # an = torch.norm(torch.stack([torch.norm(p.detach()) for p in self.actor.base_model.parameters()])).item()
+                # cn = torch.norm(torch.stack([torch.norm(p.detach()) for p in self.critic.base_model.parameters()])).item()
+                # amax = max([torch.max(p.detach()).item() for p in self.actor.base_model.parameters()])
+                # amin= min([torch.min(p.detach()).item() for p in self.actor.base_model.parameters()])
+                # cmax = max([torch.max(p.detach()).item() for p in self.critic.base_model.parameters()])
+                # cmin = min([torch.min(p.detach()).item() for p in self.critic.base_model.parameters()])
+                #
+                # self.logger.add_scalar(tag='Norms/actor base', scalar_value=an)
+                # self.logger.add_scalar(tag='Norms/actor base max', scalar_value=amax)
+                # self.logger.add_scalar(tag='Norms/actor base min', scalar_value=amin)
+                # self.logger.add_scalar(tag='Norms/critic base', scalar_value=cn)
+                # self.logger.add_scalar(tag='Norms/critic base max', scalar_value=cmax)
+                # self.logger.add_scalar(tag='Norms/critic base min', scalar_value=cmin)
+
+                # ag = torch.norm(torch.stack([torch.norm(p.detach()) for p in self.parameter_server.actor_grads]))
+
+                # self.logger.add_scalar(tag='Norms/actor grad', scalar_value=ag)
+
+                # self.logger.add_scalar(tag='Norms/states max', scalar_value=torch.max(states))
+                # self.logger.add_histogram(tag='Norms/states argmax', values=torch.argmax(states, dim=-1))
+                # self.logger.add_scalar(tag='Norms/states min', scalar_value=torch.min(states))
+                # self.logger.add_histogram(tag='Norms/states argmin', values=torch.argmin(states, dim=-1))
 
         self.actor.copy_params(self.parameter_server.shared_actor)
         self.critic.copy_params(self.parameter_server.shared_critic)
