@@ -45,7 +45,7 @@ class ModelTester:
 
 if __name__ == '__main__':
     INTENTION_IDX = 0
-    PATH_TO_MODEL = str(pathlib.Path(__file__).resolve().parents[1]) + "/models/" + "office/actor_1420"
+    PATH_TO_MODEL = str(pathlib.Path(__file__).resolve().parents[1]) + "/models/" + "29-08_23-21/actor_160"
 
     parser_args = arg_parser.parse_args()
     # actor = Actor(parser_args=parser_args)

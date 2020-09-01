@@ -105,7 +105,8 @@ class Actor(Base):
         self.num_intentions = parser_args.num_intentions
         self.num_actions = parser_args.num_actions
         self.eps = eps
-        self.upper_log_std_bound = np.log(2)
+        self.lower_log_std_bound = np.log(1e-3)
+        self.upper_log_std_bound = np.log(1)
 
         self.logger = logger
 
@@ -141,7 +142,7 @@ class Actor(Base):
             mean = self.intention_nets[intention_idx](x)[:self.num_actions]
             log_std = self.intention_nets[intention_idx](x)[self.num_actions:]
 
-        return mean, log_std.clamp(max=self.upper_log_std_bound)
+        return mean, log_std.clamp(min=self.lower_log_std_bound, max=self.upper_log_std_bound)
 
     def action_sample(self, mean: torch.Tensor, log_std: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """

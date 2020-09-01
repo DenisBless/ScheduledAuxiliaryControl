@@ -51,24 +51,22 @@ class Logger(SummaryWriter):
             self.add_scalar(tag='Q_values/no_touch', scalar_value=Q_values[12].mean())
             self.add_scalar(tag='Q_values/stack', scalar_value=Q_values[13].mean())
 
+
+
     def log_std(self, std):
         if std.shape[0] == 1:
             self.add_scalar(tag='Std/touch', scalar_value=std.mean())
         else:
-            self.add_scalar(tag='Std/close', scalar_value=std[0].mean())
-            self.add_scalar(tag='Std/above', scalar_value=std[1].mean())
-            self.add_scalar(tag='Std/above_close', scalar_value=std[2].mean())
-            self.add_scalar(tag='Std/left', scalar_value=std[3].mean())
-            self.add_scalar(tag='Std/left_close', scalar_value=std[4].mean())
-            self.add_scalar(tag='Std/below', scalar_value=std[5].mean())
-            self.add_scalar(tag='Std/right', scalar_value=std[6].mean())
-            self.add_scalar(tag='Std/below_close', scalar_value=std[7].mean())
-            self.add_scalar(tag='Std/right_close', scalar_value=std[8].mean())
-            self.add_scalar(tag='Std/move1', scalar_value=std[9].mean())
-            self.add_scalar(tag='Std/move2', scalar_value=std[10].mean())
-            self.add_scalar(tag='Std/touch', scalar_value=std[11].mean())
-            self.add_scalar(tag='Std/no_touch', scalar_value=std[12].mean())
-            self.add_scalar(tag='Std/stack', scalar_value=std[13].mean())
+            self.add_scalar(tag='Std/reach', scalar_value=std[0].mean())
+            self.add_scalar(tag='Std/close', scalar_value=std[1].mean())
+            self.add_scalar(tag='Std/above', scalar_value=std[2].mean())
+            self.add_scalar(tag='Std/above_close', scalar_value=std[3].mean())
+            self.add_scalar(tag='Std/left', scalar_value=std[4].mean())
+            self.add_scalar(tag='Std/move1', scalar_value=std[5].mean())
+            self.add_scalar(tag='Std/move2', scalar_value=std[6].mean())
+            self.add_scalar(tag='Std/touch', scalar_value=std[7].mean())
+            self.add_scalar(tag='Std/no_touch', scalar_value=std[8].mean())
+            self.add_scalar(tag='Std/stack', scalar_value=std[9].mean())
 
     def log_schedule_decisions(self, schedule_decisions):
         for i, d in enumerate(schedule_decisions):

@@ -73,7 +73,7 @@ class Retrace:
                 Q_ret[:, t - 1] = rewards[:, t - 1] + gamma * c_ret[:, t] * (Q_ret[:, t] - target_Q[:, t]) + \
                                   gamma * expected_target_Q[:, t]
 
-        return ((Q - Q_ret) ** 2).mean(dim=-1).sum(dim=0)
+        return ((Q - Q_ret) ** 2).mean()
 
     def calc_retrace_weights(self, target_policy_logprob, behaviour_policy_logprob):
         """
@@ -97,7 +97,7 @@ class Retrace:
 
 
 class ActorLoss:
-    def __init__(self, num_intentions, alpha=0):
+    def __init__(self, num_intentions, alpha=0, logger=None):
         """
         Loss function for the actor.
         Args:
@@ -105,6 +105,7 @@ class ActorLoss:
         """
         self.num_intentions = num_intentions
         self.alpha = alpha
+        self.logger = logger
 
     def __call__(self, Q, action_log_prob):
         """
@@ -118,4 +119,10 @@ class ActorLoss:
             Scalar actor loss value
         """
         assert Q.dim() == action_log_prob.dim()
-        return (self.alpha * action_log_prob - Q).mean(dim=-1).sum()
+
+        # Log both parts of the actor loss
+        if self.logger is not None:
+            self.logger.add_scalar(tag='Loss/entropy', scalar_value=(self.alpha * action_log_prob).mean())
+            self.logger.add_scalar(tag='Loss/Q', scalar_value=(-Q).mean())
+
+        return (self.alpha * action_log_prob - Q).mean()

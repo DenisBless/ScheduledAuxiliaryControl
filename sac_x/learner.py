@@ -35,7 +35,8 @@ class Learner:
         self.logger = logger
         self.log_every = 10
 
-        self.actor_loss = ActorLoss(alpha=parser_args.entropy_reg, num_intentions=parser_args.num_intentions)
+        self.actor_loss = ActorLoss(alpha=parser_args.entropy_reg, num_intentions=parser_args.num_intentions,
+                                    logger=logger)
         self.critic_loss = Retrace(num_actions=self.num_actions, num_intentions=parser_args.num_intentions)
 
         self.update_targnets_every = parser_args.update_targnets_every
@@ -131,7 +132,7 @@ class Learner:
                 self.logger.add_scalar(tag='Loss/Actor', scalar_value=actor_loss)
                 self.logger.log_rewards(rewards, mode='Train')
                 # self.logger.log_Q_values(current_Q)
-                # self.logger.log_std(current_log_std.exp())
+                self.logger.log_std(current_log_std.exp())
                 # self.logger.log_schedule_decisions(schedule_decisions)
 
         self.actor.copy_params(self.parameter_server.shared_actor)
