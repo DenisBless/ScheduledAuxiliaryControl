@@ -51,8 +51,7 @@ class Sampler:
 
                 mean, log_std = self.actor(obs, intention_idx)
                 action, action_log_pr = self.actor.action_sample(mean, log_std)
-                denormalized_action = action.detach().cpu().numpy() * self.env.action_space.high
-                assert self.env.action_space.low.all() <= denormalized_action.all() <= self.env.action_space.high.all()
+                denormalized_action = action.detach().cpu().numpy() * self.env.action_space.high[:3]
                 next_obs, reward, done, _ = self.env.step(denormalized_action)
                 next_obs = torch.tensor(next_obs, dtype=torch.float)
                 reward = torch.tensor(reward, dtype=torch.float)

@@ -1,9 +1,13 @@
 /sac
 /tests.ipynb
 /sac_x/runs/
+/sac_x/runsOLD/
 /models
 /experiments/runs/
 /*.pyc
 *.pyc
 todos.py
 /experiments/runsOLD/
+/stack/
+/parallelization_eval/*
+

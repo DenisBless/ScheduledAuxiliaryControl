@@ -34,11 +34,12 @@ class ArgParser(ArgumentParser):
                           help='Discount factor for future rewards.')
 
         # Environment arguments
-        self.add_argument('--num_actions', type=int, default=4,
+        self.add_argument('--num_actions', type=int, default=3,
                           help='Dimension of the action space.')
-        self.add_argument('--num_observations', type=int, default=34,
+        self.add_argument('--num_observations', type=int, default=17,
+        # self.add_argument('--num_observations', type=int, default=15,
                           help='Dimension of the observation space.')
-        self.add_argument('--num_intentions', type=int, default=10,
+        self.add_argument('--num_intentions', type=int, default=3,
                           help='Number of intentions (auxiliary tasks + external tasks).')
         self.add_argument('--episode_length', type=int, default=360,
                           help='Number of steps the agent interacts with the environment.')

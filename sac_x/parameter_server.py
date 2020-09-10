@@ -42,10 +42,12 @@ class ParameterServer:
 
         self.actor_grads, self.critic_grads = self.init_grad()
 
-        self.actor_optimizer = SharedAdam(self.shared_actor.parameters(), parser_args.actor_lr)
-        self.actor_optimizer.share_memory()
-        self.critic_optimizer = SharedAdam(self.shared_critic.parameters(), parser_args.critic_lr)
-        self.critic_optimizer.share_memory()
+        self.actor_optimizer = torch.optim.Adam(self.shared_actor.parameters(), parser_args.actor_lr)
+        self.critic_optimizer = torch.optim.Adam(self.shared_critic.parameters(), parser_args.critic_lr)
+        # self.actor_optimizer = SharedAdam(self.shared_actor.parameters(), parser_args.actor_lr)
+        # self.actor_optimizer.share_memory()
+        # self.critic_optimizer = SharedAdam(self.shared_critic.parameters(), parser_args.critic_lr)
+        # self.critic_optimizer.share_memory()
 
         self.global_gradient_norm = parser_args.global_gradient_norm
 
@@ -76,6 +78,7 @@ class ParameterServer:
             shared_ag += ag / self.G
         for shared_cg, cg in zip(self.critic_grads, critic_grads):
             shared_cg += cg / self.G
+
 
     def update_params(self) -> None:
         """

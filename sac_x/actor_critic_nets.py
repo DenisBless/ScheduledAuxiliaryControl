@@ -12,13 +12,13 @@ class Base(nn.Module):
                  non_linearity: nn.Module = nn.ReLU()):
         super(Base, self).__init__()
 
-        base_modules = []
-        for i in range(len(base_layer_dims) - 1):
-            base_modules.append(torch.nn.Linear(base_layer_dims[i], base_layer_dims[i + 1]))
-            base_modules.append(non_linearity)
-
-        self.base_model = nn.Sequential(*base_modules)
-        self.init_weights(self.base_model)
+        # base_modules = []
+        # for i in range(len(base_layer_dims) - 1):
+        #     base_modules.append(torch.nn.Linear(base_layer_dims[i], base_layer_dims[i + 1]))
+        #     base_modules.append(non_linearity)
+        #
+        # self.base_model = nn.Sequential(*base_modules)
+        # self.init_weights(self.base_model)
 
     def copy_params(self, source_network: nn.Module) -> None:
         """
@@ -57,19 +57,20 @@ class Base(nn.Module):
         return True
 
     @staticmethod
-    def init_weights(module: nn.Module) -> None:
+    def init_weights(module: nn.Module, gain=1.41) -> None:
         """
         Orthogonal initialization of the weights. Sets initial bias to zero.
 
         Args:
             module: Network to initialize weights.
+            gain: Scaling factor
 
         Returns:
             No return value
 
         """
         if type(module) == nn.Linear:
-            nn.init.orthogonal_(module.weight)
+            nn.init.orthogonal_(module.weight, gain=gain)
             module.bias.data.fill_(0.0)
 
     def has_zero_grads(self):
@@ -90,14 +91,14 @@ class Actor(Base):
                  parser_args,
                  base_layer_dims: List = None,
                  intention_layer_dims: List = None,
-                 non_linearity: nn.Module = nn.ReLU(),
+                 non_linearity: nn.Module = nn.Tanh(),
                  eps: float = 1e-6,
                  logger=None):
 
         if base_layer_dims is None:
             base_layer_dims = [64, 64]
         if intention_layer_dims is None:
-            intention_layer_dims = [32]
+            intention_layer_dims = [parser_args.num_observations, 32, 32]
 
         super(Actor, self).__init__(base_layer_dims=[parser_args.num_observations] + base_layer_dims,
                                     non_linearity=non_linearity)
@@ -116,13 +117,17 @@ class Actor(Base):
         self.intention_nets = nn.ModuleList()
         for _ in range(self.num_intentions):
             # Create a model for a intention net
-            intention_modules = [nn.Linear(base_layer_dims[-1], intention_layer_dims[0]), non_linearity]
+            # intention_modules = [nn.Linear(base_layer_dims[-1], intention_layer_dims[0]), non_linearity]
+            intention_modules = []
             for i in range(len(intention_layer_dims) - 1):
                 intention_modules.append(nn.Linear(intention_layer_dims[i], intention_layer_dims[i + 1]))
                 intention_modules.append(non_linearity)
             intention_modules.append(nn.Linear(intention_layer_dims[-1], 2 * self.num_actions))
-
-            self.intention_nets.append(nn.Sequential(*intention_modules))
+            intention_model = nn.Sequential(*intention_modules)
+            intention_model.apply(self.init_weights)  # orthogonal weight initialization
+            with torch.no_grad():
+                list(intention_model.parameters())[-2] *= 1e-2
+            self.intention_nets.append(intention_model)
 
     def __call__(self, x, intention_idx=None):
         return self.predict(x, intention_idx)
@@ -130,7 +135,7 @@ class Actor(Base):
     def predict(self, x, intention_idx=None):
         # assert (0 <= intention_idx < self.num_intentions) or (intention_idx is None)
 
-        x = self.base_model(x)
+        # x = self.base_model(x)
 
         if intention_idx is None:
             mean = torch.zeros([self.num_intentions, self.episode_length, self.num_actions])
@@ -141,8 +146,10 @@ class Actor(Base):
         else:
             mean = self.intention_nets[intention_idx](x)[:self.num_actions]
             log_std = self.intention_nets[intention_idx](x)[self.num_actions:]
-
-        return mean, log_std.clamp(min=self.lower_log_std_bound, max=self.upper_log_std_bound)
+        assert not torch.isnan(log_std).any()
+        log_std = torch.log(1 + torch.exp(log_std) + 1e-6)
+        assert not torch.isnan(log_std).any()
+        return mean, log_std
 
     def action_sample(self, mean: torch.Tensor, log_std: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -205,7 +212,8 @@ class Actor(Base):
         Returns:
             N(u|μ(s), σ(s))
         """
-        return Normal(loc=mean, scale=log_std.exp())
+        # return Normal(loc=mean, scale=log_std.exp())
+        return Normal(loc=mean, scale=log_std)
 
     def inverseTanh(self, action: torch.Tensor) -> torch.Tensor:
         """
@@ -231,13 +239,13 @@ class Critic(Base):
                  parser_args,
                  base_layer_dims: List = None,
                  intention_layer_dims: List = None,
-                 non_linearity: nn.Module = nn.ReLU(),
+                 non_linearity: nn.Module = nn.Tanh(),
                  logger=None):
 
         if base_layer_dims is None:
             base_layer_dims = [128, 128]
         if intention_layer_dims is None:
-            intention_layer_dims = [64]
+            intention_layer_dims = [parser_args.num_actions + parser_args.num_observations, 128, 128]
 
         super(Critic, self).__init__(base_layer_dims=[parser_args.num_actions + parser_args.num_observations]
                                                      + base_layer_dims, non_linearity=non_linearity)
@@ -253,13 +261,16 @@ class Critic(Base):
         self.intention_nets = nn.ModuleList()
         for _ in range(self.num_intentions):
             # Create a model for a intention net
-            intention_modules = [nn.Linear(base_layer_dims[-1], intention_layer_dims[0]), non_linearity]
+            # intention_modules = [nn.Linear(base_layer_dims[-1], intention_layer_dims[0]), non_linearity]
+            intention_modules = []
             for i in range(len(intention_layer_dims) - 1):
                 intention_modules.append(nn.Linear(intention_layer_dims[i], intention_layer_dims[i + 1]))
                 intention_modules.append(non_linearity)
             intention_modules.append(nn.Linear(intention_layer_dims[-1], 1))
-
-            self.intention_nets.append(nn.Sequential(*intention_modules))
+            intention_model = nn.Sequential(*intention_modules)
+            # Orthogonal weight initialization
+            intention_model.apply(self.init_weights)
+            self.intention_nets.append(intention_model)
 
     def __call__(self, actions, observations):
         if observations.dim() < actions.dim():
@@ -268,7 +279,7 @@ class Critic(Base):
         return self.forward(x)
 
     def forward(self, x):
-        x = self.base_model(x)
+        # x = self.base_model(x)
 
         Q_values = torch.zeros([self.num_intentions, self.episode_length, 1])
         for i in range(self.num_intentions):
