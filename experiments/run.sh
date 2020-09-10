@@ -6,8 +6,6 @@ python3 -O ../sac_x/main.py \
 --actor_lr=2e-4 \
 --critic_lr=2e-4 \
 --global_gradient_norm=0.5 \
---entropy_reg=1e-5 \
+--entropy_reg=1e-2 \
 --replay_buffer_size=2000 \
 --num_trajectories=20  \
---num_intentions=10 \
---num_observations=34
