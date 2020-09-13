@@ -36,7 +36,6 @@ class ModelTester:
                     mean, log_std = self.actor(obs, intention)
                     action, action_log_pr = self.actor.action_sample(mean, torch.zeros_like(mean))
                     denormalized_action = action.detach().cpu().numpy() * self.env.action_space.high[:3]
-                    assert self.env.action_space.low.all() <= denormalized_action.all() <= self.env.action_space.high.all()
                     next_obs, reward, done, _ = self.env.step(denormalized_action)
                     next_obs = torch.tensor(next_obs, dtype=torch.float)
                     obs = next_obs
@@ -45,7 +44,7 @@ class ModelTester:
 if __name__ == '__main__':
     INTENTION_IDX = 0
     # PATH_TO_MODEL = str(pathlib.Path(__file__).resolve().parents[1]) + "/models/06-09_16-55/" + "actor_100"
-    PATH_TO_MODEL = str(pathlib.Path(__file__).resolve().parents[1]) + "/stack/" + "actor_stack10-09_07-16"
+    PATH_TO_MODEL = str(pathlib.Path(__file__).resolve().parents[1]) + "/stack/" + "actor_stack11-09_08-36"
 
     parser_args = arg_parser.parse_args()
     actor = Actor(parser_args=parser_args)
