@@ -133,8 +133,8 @@ class Learner:
                 self.logger.log_rewards(rewards, mode='Train')
                 # self.logger.log_Q_values(current_Q)
                 # self.logger.log_std(current_log_std.exp())
-                self.logger.log_std(current_log_std)
-                # self.logger.log_schedule_decisions(schedule_decisions)
+                # self.logger.log_std(current_log_std)
+                self.logger.log_schedule_decisions(schedule_decisions)
 
         self.actor.copy_params(self.parameter_server.shared_actor)
         self.critic.copy_params(self.parameter_server.shared_critic)

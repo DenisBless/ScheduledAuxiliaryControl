@@ -36,10 +36,10 @@ class ArgParser(ArgumentParser):
         # Environment arguments
         self.add_argument('--num_actions', type=int, default=3,
                           help='Dimension of the action space.')
-        self.add_argument('--num_observations', type=int, default=17,
+        self.add_argument('--num_observations', type=int, default=29,
         # self.add_argument('--num_observations', type=int, default=15,
                           help='Dimension of the observation space.')
-        self.add_argument('--num_intentions', type=int, default=3,
+        self.add_argument('--num_intentions', type=int, default=10,
                           help='Number of intentions (auxiliary tasks + external tasks).')
         self.add_argument('--episode_length', type=int, default=360,
                           help='Number of steps the agent interacts with the environment.')

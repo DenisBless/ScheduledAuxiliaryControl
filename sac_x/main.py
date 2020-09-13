@@ -9,7 +9,7 @@ from sac_x.learner import Learner
 from sac_x.evaluator import Evaluator
 from sac_x.parameter_server import ParameterServer
 from sac_x.replay_buffer import SharedReplayBuffer
-from sac_x.scheduler import SacU
+from sac_x.scheduler import SacU, SacQ
 from sac_x.actor_critic_nets import Actor, Critic
 
 from simulation.src.gym_sf.mujoco.mujoco_envs.stack_env.stack_env import StackEnv
@@ -82,7 +82,7 @@ if __name__ == '__main__':
     shared_replay_buffer = SharedReplayBuffer(parser_args=p_args,
                                               cv=worker_cv)
 
-    shared_scheduler = SacU(parser_args=p_args)
+    shared_scheduler = SacQ(parser_args=p_args)
 
     if p_args.num_workers > 1:
         processes = [mp.Process(target=work, args=(shared_param_server, shared_replay_buffer, shared_scheduler, p_args))

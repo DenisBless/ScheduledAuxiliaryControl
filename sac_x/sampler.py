@@ -45,7 +45,7 @@ class Sampler:
 
                 # Sample an intention from the scheduler
                 if t % self.schedule_switch == 0:
-                    intention_idx = self.scheduler.sample_intention(h)
+                    intention_idx = self.scheduler.sample_intention(h, schedule_decisions)
                     schedule_decisions.append(intention_idx[0])
                     h += 1
 
@@ -69,6 +69,7 @@ class Sampler:
             schedule_decisions = torch.stack(schedule_decisions)
 
             # main_cum_reward = rewards[0, 13] + (rewards[1:, 13] * self.discounts).sum()
-            self.scheduler.update(None, schedule_decisions)  # Update the scheduler
+            main_cum_reward = [0.99 ** t * r for t, r in enumerate(rewards[:, 9])]
+            self.scheduler.update(main_cum_reward, schedule_decisions)  # Update the scheduler
             self.replay_buffer.push(states.detach(), actions.detach(), rewards.detach(), action_log_prs.detach(),
                                     schedule_decisions)
