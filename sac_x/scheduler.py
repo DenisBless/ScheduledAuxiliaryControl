@@ -68,7 +68,7 @@ class SacQ(Scheduler):
     def update(self, R_main, tasks) -> None:
         # Update scheduler for h = 0
         self.M_task[0, tasks[0]] += 1
-        delta_0 = sum(R_main[:self.schedule_switch]) - self.Q_table[0][tasks[0]]
+        delta_0 = sum(R_main) - self.Q_table[0][tasks[0]]
         self.Q_table[0][tasks[0]] += delta_0 / self.M  # self.M_task[0, tasks[0]]
 
         # Update scheduler for h = 1

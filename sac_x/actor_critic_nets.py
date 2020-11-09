@@ -74,15 +74,24 @@ class Base(nn.Module):
             module.bias.data.fill_(0.0)
 
     def has_zero_grads(self):
+        """
+        Checks if the gradients are zero.
+        """
         for params in self.parameters():
             assert params.grad.sum() == 0
 
     @property
     def param_norm(self):
+        """
+        Calculates the norm of network parameters.
+        """
         return torch.norm(torch.stack([torch.norm(p.detach()) for p in self.parameters()]))
 
     @property
     def grad_norm(self):
+        """
+        Calculates the norm of current gradients.
+        """
         return torch.norm(torch.stack([torch.norm(p.grad.detach()) for p in self.parameters()]))
 
 
@@ -106,8 +115,6 @@ class Actor(Base):
         self.num_intentions = parser_args.num_intentions
         self.num_actions = parser_args.num_actions
         self.eps = eps
-        self.lower_log_std_bound = np.log(1e-3)
-        self.upper_log_std_bound = np.log(1)
 
         self.logger = logger
 
@@ -133,25 +140,23 @@ class Actor(Base):
         return self.predict(x, intention_idx)
 
     def predict(self, x, intention_idx=None):
-        # assert (0 <= intention_idx < self.num_intentions) or (intention_idx is None)
-
         # x = self.base_model(x)
 
         if intention_idx is None:
             mean = torch.zeros([self.num_intentions, self.episode_length, self.num_actions])
-            log_std = torch.zeros([self.num_intentions, self.episode_length, self.num_actions])
+            std = torch.zeros([self.num_intentions, self.episode_length, self.num_actions])
             for i in range(self.num_intentions):
                 mean[i, :, :] = self.intention_nets[i](x)[:, :self.num_actions]
-                log_std[i, :, :] = self.intention_nets[i](x)[:, self.num_actions:]
+                std[i, :, :] = self.intention_nets[i](x)[:, self.num_actions:]
         else:
             mean = self.intention_nets[intention_idx](x)[:self.num_actions]
-            log_std = self.intention_nets[intention_idx](x)[self.num_actions:]
-        assert not torch.isnan(log_std).any()
-        log_std = torch.log(1 + torch.exp(log_std) + 1e-6)
-        assert not torch.isnan(log_std).any()
-        return mean, log_std
+            std = self.intention_nets[intention_idx](x)[self.num_actions:]
+        assert not torch.isnan(std).any()
+        std = torch.log(1 + torch.exp(std) + 1e-6)
+        assert not torch.isnan(std).any()
+        return mean, std
 
-    def action_sample(self, mean: torch.Tensor, log_std: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def action_sample(self, mean: torch.Tensor, std: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Creates an action sample from the policy network. The output of the network is assumed to be gaussian
         distributed. Let u be a random variable with distribution p(u|s). Since we want our actions to be bound in
@@ -162,19 +167,19 @@ class Actor(Base):
 
         Args:
             mean: μ(s)
-            log_std: log σ(s) where u ~ N(•|μ(s), σ(s))
+            std: log σ(s) where u ~ N(•|μ(s), σ(s))
 
         Returns:
             action sample a = tanh(u) and log prob log π(a|s)
         """
-        dist = self.normal_dist(mean, log_std)
+        dist = self.normal_dist(mean, std)
         normal_action = dist.rsample()  # rsample() employs reparameterization trick
         action = torch.tanh(normal_action)
         normal_log_prob = dist.log_prob(normal_action)
         log_prob = torch.sum(normal_log_prob, dim=-1) - torch.sum(torch.log((1 - action.pow(2) + self.eps)), dim=-1)
         return action, log_prob
 
-    def get_log_prob(self, actions: torch.Tensor, mean: torch.Tensor, log_std: torch.Tensor,
+    def get_log_prob(self, actions: torch.Tensor, mean: torch.Tensor, std: torch.Tensor,
                      normal_actions: torch.Tensor = None) -> torch.Tensor:
         """
         Returns the log prob of a given action a = tanh(u) and u ~ N(•|μ(s), σ(s)) according to
@@ -186,7 +191,7 @@ class Actor(Base):
         Args:
             actions: a = tanh(u)
             mean: μ(s)
-            log_std: log σ(s)
+            std: log σ(s)
             normal_actions: u ~ N(•|μ(s), σ(s))
 
         Returns:
@@ -195,25 +200,25 @@ class Actor(Base):
         if normal_actions is None:
             normal_actions = self.inverseTanh(actions)
 
-        normal_log_probs = self.normal_dist(mean, log_std).log_prob(normal_actions)
+        normal_log_probs = self.normal_dist(mean, std).log_prob(normal_actions)
         log_probs = torch.sum(normal_log_probs, dim=-1) - torch.sum(torch.log(1 - actions.pow(2) + self.eps), dim=-1)
         assert not torch.isnan(log_probs).any()
         return log_probs
 
     @staticmethod
-    def normal_dist(mean: torch.Tensor, log_std: torch.Tensor) -> Normal:
+    def normal_dist(mean: torch.Tensor, std: torch.Tensor) -> Normal:
         """
         Returns a normal distribution.
 
         Args:
             mean: μ(s)
-            log_std: log σ(s) where u ~ N(•|μ(s), σ(s))
+            std: log σ(s) where u ~ N(•|μ(s), σ(s))
 
         Returns:
             N(u|μ(s), σ(s))
         """
-        # return Normal(loc=mean, scale=log_std.exp())
-        return Normal(loc=mean, scale=log_std)
+        # return Normal(loc=mean, scale=std.exp())
+        return Normal(loc=mean, scale=std)
 
     def inverseTanh(self, action: torch.Tensor) -> torch.Tensor:
         """

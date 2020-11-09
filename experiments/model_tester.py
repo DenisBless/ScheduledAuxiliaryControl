@@ -25,11 +25,13 @@ class ModelTester:
         self.trajectory_length = parser_args.episode_length
 
     def run(self) -> None:
-        while True:
-            intention = int(input("Select Intention: \n => "))
-            assert 0 <= intention <= self.num_intentions, "Error, invalid intention index."
-
-            for _ in range(3):
+        # while True:
+            # intention = int(input("Select Intention: \n => "))
+            # assert 0 <= intention <= self.num_intentions, "Error, invalid intention index."
+        intentions = list(range(self.num_intentions))
+        intentions.insert(0, 0)
+        for intention in intentions:
+            for _ in range(1):
                 obs = torch.tensor(self.env.reset(), dtype=torch.float)
                 for t in range(self.trajectory_length):
                     # mean, log_std = self.actor(obs, self.intention_idx)
